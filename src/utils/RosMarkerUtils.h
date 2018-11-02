@@ -47,6 +47,8 @@ public:
     static void setpose_to_marker( const Matrix4d& w_T_c, visualization_msgs::Marker& marker );
     static void setposition_to_marker( const Vector3d& w_t_c, visualization_msgs::Marker& marker );
     static void setposition_to_marker( const Vector4d& w_t_c, visualization_msgs::Marker& marker );
+    static void setposition_to_marker( float x, float y, float z, visualization_msgs::Marker& marker );
+
     static void setcolor_to_marker( float r, float g, float b, visualization_msgs::Marker& marker  );
     static void setcolor_to_marker( float r, float g, float b, float a, visualization_msgs::Marker& marker  );
 

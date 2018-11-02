@@ -96,6 +96,13 @@ void RosMarkerUtils::setposition_to_marker( const Vector4d& w_t_c, visualization
     marker.pose.position.z = w_t_c(2) / w_t_c(3); ;
 }
 
+void RosMarkerUtils::setposition_to_marker( float x, float y, float z, visualization_msgs::Marker& marker )
+{
+    marker.pose.position.x = x;
+    marker.pose.position.y = y;
+    marker.pose.position.z = z;
+}
+
 void RosMarkerUtils::setcolor_to_marker( float r, float g, float b, visualization_msgs::Marker& marker  )
 {
     assert( r>=0. && r<=1.0 && g>=0. && g<=1.0 && b>=0 && b<=1.0 );

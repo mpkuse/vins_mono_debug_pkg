@@ -61,10 +61,6 @@ int main(int argc, char **argv)
 
 
 
-
-
-
-
     ros::Rate loop_rate(10);
     int count =0;
     while (ros::ok())
