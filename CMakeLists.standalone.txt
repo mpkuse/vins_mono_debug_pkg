@@ -1,0 +1,34 @@
+cmake_minimum_required(VERSION 2.8.3)
+
+
+find_package(OpenCV 3 REQUIRED)
+set( CMAKE_CXX_STANDARD 11 )
+find_package(Eigen3 REQUIRED)
+
+include_directories(
+  ${OpenCV_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+)
+
+
+
+FILE(GLOB KuseUtilSources
+            src/utils/MiscUtils.cpp
+            src/utils/RawFileIO.cpp
+            src/utils/PoseManipUtils.cpp
+            src/PinholeCamera.cpp
+    )
+
+
+add_executable( chkFile
+                src/chkFile.cpp
+                ${KuseUtilSources}
+                )
+
+add_executable( projection_test
+                src/projection_test.cpp
+                ${KuseUtilSources}
+                )
+
+target_link_libraries( chkFile  ${OpenCV_LIBRARIES} )
+target_link_libraries( projection_test  ${OpenCV_LIBRARIES} )
