@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV 3 REQUIRED)
 find_package(Eigen3 REQUIRED)
+set( CMAKE_CXX_STANDARD 11 )
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -124,7 +125,11 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
+
+
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -164,14 +169,21 @@ FILE(GLOB KuseUtilSources
             src/utils/MiscUtils.cpp
             src/utils/RawFileIO.cpp
             src/utils/PoseManipUtils.cpp
+            src/utils/RosMarkerUtils.cpp
             src/PinholeCamera.cpp
     )
 
 
 add_executable( samplepublish  src/samplepublish.cpp )
+add_executable( sample_3d_publish  src/sample_3d_publish.cpp  ${KuseUtilSources})
 
 
 target_link_libraries( samplepublish
-  ${OpenCV_LIBRARIES} 
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries( sample_3d_publish
+  ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
 )
