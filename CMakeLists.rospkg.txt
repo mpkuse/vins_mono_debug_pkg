@@ -124,6 +124,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
+    utils
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
@@ -166,16 +167,16 @@ include_directories(
 
 
 FILE(GLOB KuseUtilSources
-            src/utils/MiscUtils.cpp
-            src/utils/RawFileIO.cpp
-            src/utils/PoseManipUtils.cpp
-            src/utils/RosMarkerUtils.cpp
-            src/PinholeCamera.cpp
+            utils/MiscUtils.cpp
+            utils/RawFileIO.cpp
+            utils/PoseManipUtils.cpp
+            utils/RosMarkerUtils.cpp
+            PinholeCamera.cpp
     )
 
 
-add_executable( samplepublish  src/samplepublish.cpp )
-add_executable( sample_3d_publish  src/sample_3d_publish.cpp  ${KuseUtilSources})
+add_executable( samplepublish  src_geometry/samplepublish.cpp )
+add_executable( sample_3d_publish  src_geometry/sample_3d_publish.cpp  ${KuseUtilSources})
 
 
 target_link_libraries( samplepublish

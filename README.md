@@ -29,3 +29,12 @@ make
 Uses `CMakeLists.rospkg.txt`
 
 This can also be put in a catkin_ws and will compile with catkin_make.
+
+
+### Directory Structure
+- src_geometry : Scripts (both py and cpp) for experiments related to geometry and pose computation
+- src_place_recog : Scripts related to experiements on recognizing places.
+
+- include : ros generated include
+- rviz : .rviz files
+- utils : my collection of cpp utils. This can be included in cpp programs

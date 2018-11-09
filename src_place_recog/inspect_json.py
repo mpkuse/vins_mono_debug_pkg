@@ -9,6 +9,7 @@ import json
 if __name__ == "__main__":
     # LOG_FILE_NAME = '/Bulk_Data/_tmp_cerebro/euroc_MH_01_easy/log.json'
     LOG_FILE_NAME = '/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/log.json'
+    LOG_FILE_NAME = '/Bulk_Data/_tmp/log.json'
 
     print 'Open file: ', LOG_FILE_NAME
     with open(LOG_FILE_NAME) as data_file:
@@ -24,6 +25,7 @@ if __name__ == "__main__":
         S += str(data['DataNodes'][i]['isImageAvailable'])
         S += str(data['DataNodes'][i]['isPoseAvailable'])
         S += str(data['DataNodes'][i]['isPtCldAvailable'])
+        S += str(data['DataNodes'][i]['isWholeImageDescriptorAvailable'])
         # print i, S
 
         Q1.append( S )

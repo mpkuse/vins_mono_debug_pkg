@@ -10,9 +10,9 @@
 
 #include <iostream>
 
-#include "utils/RawFileIO.h"
-#include "utils/PoseManipUtils.h"
-#include "utils/RosMarkerUtils.h"
+#include "../utils/PoseManipUtils.h"
+#include "../utils/RawFileIO.h"
+#include "../utils/RosMarkerUtils.h"
 
 const string base_path = "/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/";
 

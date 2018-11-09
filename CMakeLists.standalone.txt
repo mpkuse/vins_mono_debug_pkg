@@ -8,25 +8,26 @@ find_package(Eigen3 REQUIRED)
 include_directories(
   ${OpenCV_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
+  utils
 )
 
 
 
 FILE(GLOB KuseUtilSources
-            src/utils/MiscUtils.cpp
-            src/utils/RawFileIO.cpp
-            src/utils/PoseManipUtils.cpp
-            src/PinholeCamera.cpp
+            utils/MiscUtils.cpp
+            utils/RawFileIO.cpp
+            utils/PoseManipUtils.cpp
+            PinholeCamera.cpp
     )
 
 
 add_executable( chkFile
-                src/chkFile.cpp
+                src_geometry/chkFile.cpp
                 ${KuseUtilSources}
                 )
 
 add_executable( projection_test
-                src/projection_test.cpp
+                src_geometry/projection_test.cpp
                 ${KuseUtilSources}
                 )
 
