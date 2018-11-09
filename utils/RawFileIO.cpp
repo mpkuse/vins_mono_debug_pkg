@@ -289,3 +289,13 @@ bool RawFileIO::read_eigen_matrix( string filename, VectorXi& result )
     __RawFileIO__write_image_debug_dm( cout << "\tshape=" << result.rows() << "x" << result.cols() << endl; )
     return true;
 };
+
+
+bool RawFileIO::read_eigen_matrix( const std::vector<double>& ary, Matrix4d& result )
+{
+    assert( ary.size() == result.rows() * result.cols() && "[RawFileIO::read_eigen_matrix] size of vector<double> need to be equal to the size of Eigen::Matrix");
+
+    for( int i=0 ; i<ary.size() ; i++ ) {
+        result(i/4, i%4) = ary[i];
+    }
+}

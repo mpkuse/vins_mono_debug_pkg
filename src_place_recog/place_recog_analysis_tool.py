@@ -58,14 +58,14 @@ if __name__ == "__main__":
     # BASE = '/Bulk_Data/_tmp/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/'
-    # BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
+    BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_floor2_cyt/'
 
     # BASE = '/Bulk_Data/_tmp_cerebro/euroc_MH_01_easy/'
     # BASE = '/Bulk_Data/_tmp_cerebro/euroc_MH_02_easy/'
 
     # BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
-    BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_tpt_park/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_tpt_park/'
 
     #
     # Open Log File

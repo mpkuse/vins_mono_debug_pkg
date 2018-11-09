@@ -59,5 +59,10 @@ public:
     static bool read_eigen_matrix( string filename, Matrix3d& result );
     static bool read_eigen_matrix( string filename, VectorXi& result );
 
+    ///< read the flat vector ary as a rowmajor matrix.
+    /// [ 1, 2, 3, 4,5,6...,16 ] ==> [ [1,2,3,4], [5,6,7,8], [9,10,11,12], [13,14,15,16] ]
+    /// TODO: Have a flag to read interpret the 1d array as a colmajor.
+    static bool read_eigen_matrix( const std::vector<double>& ary, Matrix4d& result );
+
 
 };

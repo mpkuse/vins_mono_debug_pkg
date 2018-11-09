@@ -165,7 +165,7 @@ include_directories(
 
 
 
-
+# Utils from mpkuse
 FILE(GLOB KuseUtilSources
             utils/MiscUtils.cpp
             utils/RawFileIO.cpp
@@ -174,10 +174,35 @@ FILE(GLOB KuseUtilSources
             PinholeCamera.cpp
     )
 
+# Json loading
+FILE(GLOB nlohmannJsonSources
+        utils/nlohmann/json.hpp
+)
+
+# DBOW (see: https://github.com/mpkuse/DBow3_easytouse)
+FILE(GLOB dbow3Sources
+        #utils/dbow3/Vocabulary.cpp
+        utils/dbow3_core/BowVector.cpp
+        utils/dbow3_core/Database.cpp
+        utils/dbow3_core/DescManip.cpp
+        utils/dbow3_core/FeatureVector.cpp
+        utils/dbow3_core/QueryResults.cpp
+        utils/dbow3_core/quicklz.c
+        utils/dbow3_core/ScoringObject.cpp
+        utils/dbow3_core/Vocabulary.cpp
+    )
+INCLUDE_DIRECTORIES( utils/dbow3_core )
+
+
 
 add_executable( samplepublish  src_geometry/samplepublish.cpp )
 add_executable( sample_3d_publish  src_geometry/sample_3d_publish.cpp  ${KuseUtilSources})
 
+add_executable( place_recog_analysis_cpp
+                    src_place_recog/place_recog_analysis.cpp
+                    ${KuseUtilSources}
+                    ${dbow3Sources}
+)
 
 target_link_libraries( samplepublish
   ${OpenCV_LIBRARIES}
@@ -185,6 +210,11 @@ target_link_libraries( samplepublish
 )
 
 target_link_libraries( sample_3d_publish
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries( place_recog_analysis_cpp
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
 )
