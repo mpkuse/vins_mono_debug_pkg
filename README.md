@@ -15,6 +15,7 @@ This is designed to read the dump file and do custom analysis. In the dump folde
     - **i.wX.pointcloud** # 3d points estimated from raws tracks. wX. world here is the 1st frame of the odometry. It ofcourse drifts as time passes.
     - **i.wTc**
 
+I am happy to provide a sample dump folder as a tarball. Email if you want to try.
 
 ### StandAlone Make
 Uses `CMakeLists.standalone.txt`

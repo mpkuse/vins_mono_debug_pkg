@@ -198,8 +198,8 @@ INCLUDE_DIRECTORIES( utils/dbow3_core )
 add_executable( samplepublish  src_geometry/samplepublish.cpp )
 add_executable( sample_3d_publish  src_geometry/sample_3d_publish.cpp  ${KuseUtilSources})
 
-add_executable( place_recog_analysis_cpp
-                    src_place_recog/place_recog_analysis.cpp
+add_executable( place_recog_dbow3
+                    src_place_recog/place_recog_dbow3.cpp
                     ${KuseUtilSources}
                     ${dbow3Sources}
 )
@@ -214,7 +214,7 @@ target_link_libraries( sample_3d_publish
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries( place_recog_analysis_cpp
+target_link_libraries( place_recog_dbow3
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
 )

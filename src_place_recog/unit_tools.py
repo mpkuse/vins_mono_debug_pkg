@@ -68,7 +68,7 @@ def publish_marker( pub, VIO__w_t_i, T, TH=0.92, max_n=None, BASE=None  ):
     m.ns = 'vio'#+offsettxt
     m.type = m.LINE_STRIP
     m.scale.x = 0.05
-    print 'len(VIO__w_t_i) ', len(VIO__w_t_i), '   len(T) ', len(T), 'max_n ', str(up_to)
+    #print 'len(VIO__w_t_i) ', len(VIO__w_t_i), '   len(T) ', len(T), 'max_n ', str(up_to)
     for i, w_t_i in enumerate(VIO__w_t_i[:up_to] ):
         m.points.append( Point( w_t_i[0], w_t_i[1], w_t_i[2] ) )  #plot nodes at x,y,z
         # m.points.append( Point( w_t_i[0], w_t_i[2], i ) )           #plot nodes at x,z,frame#
@@ -113,7 +113,8 @@ def publish_marker( pub, VIO__w_t_i, T, TH=0.92, max_n=None, BASE=None  ):
             continue
 
         if max_n is None:
-            print '%d<--%4.2f-->%d' %( p0, score, p1 ), '\tAccept'
+            # print '%d<--%4.2f-->%d' %( p0, score, p1 ), '\tAccept'
+            pass
 
         w_t_p0 = VIO__w_t_i[ p0 ]
         w_t_p1 = VIO__w_t_i[ p1 ]
@@ -128,7 +129,7 @@ def publish_marker( pub, VIO__w_t_i, T, TH=0.92, max_n=None, BASE=None  ):
         c = c+1
 
     pub.publish( m )
-    print 'publish n_loop_candidates: ', c, 'TH=', TH
+    # print 'publish n_loop_candidates: ', c, 'TH=', TH
 
 
     # Display Images of the Last Candidate
@@ -185,7 +186,8 @@ def imshow_loopcandidates( T, BASE=None, VIO__w_t_i=None, pub=None ):
             pub.publish( marker )
 
 
-        cv2.imshow( 'im', im )
+        # cv2.imshow( 'im', im )
+        cv2.imshow( 'im_resized', cv2.resize( im, (0,0), fx=0.5, fy=0.5 ) ) # resize for better display
         print 'Press <space> for next pair, <q> to exit this loop. <w> to save this image to BASE (%s)' %(BASE)
         key = cv2.waitKey(0)
         if key == ord('q'):
@@ -195,6 +197,7 @@ def imshow_loopcandidates( T, BASE=None, VIO__w_t_i=None, pub=None ):
             cv2.imwrite( BASE+'/loopcandidate_%d_%d.jpg' %(p0,p1), im )
 
     cv2.destroyWindow('im')
+    cv2.destroyWindow('im_resized')
 
 
 
