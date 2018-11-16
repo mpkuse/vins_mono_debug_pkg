@@ -44,9 +44,9 @@ using namespace DBoW3;
 using json = nlohmann::json;
 
 
-// const std::string BASE = "/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/";
+const std::string BASE = "/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/";
 // const std::string BASE = "/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/";
-const std::string BASE = "/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/";
+// const std::string BASE = "/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/";
 
 
 
@@ -213,6 +213,7 @@ int main( int argc, char ** argv )
     cout << "Database information: " << endl << db << endl;
 
     vector< std::tuple< int, int, double > > loop_candidates_list_filtered;
+    // TODO : This is a locality and threshold filter. Do geometric filtering.
     filter_candidates( loop_candidates_list, loop_candidates_list_filtered, 1.0, 8, true );
 
 

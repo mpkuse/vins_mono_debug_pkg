@@ -8,6 +8,7 @@ import numpy as np
 import code
 import cv2
 import time
+import datetime
 
 import json
 
@@ -65,9 +66,9 @@ def filter_candidates_lt_thresh( T, TH ):
 #         return preds
 
 if __name__ == "__main__":
-    # BASE = '/Bulk_Data/_tmp/'
+    BASE = '/Bulk_Data/_tmp/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/'
-    BASE = '/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_floor2_cyt/'
 
@@ -113,7 +114,7 @@ if __name__ == "__main__":
 
 
     # Create Loop Candidates or Load file loopcandidates_?_.json
-    if False:
+    if True:
         #
         # Loops over all images and precomputes their netvlad vector (or read the .npz file)
         #
@@ -176,6 +177,9 @@ if __name__ == "__main__":
         #   only if i-1, i-2 and i go to a similar neighbourhood (filter_candidates).
         #       T = [ {a<-->b, score}, {a<-->b, score},...  ] #list of raw loop candidates with their scores
         #
+        from Plot2Mat import Plot2Mat
+        plot_handle = Plot2Mat()
+
         D = netvlad_desc
         T = []
         for i in range( netvlad_desc.shape[0] ):
@@ -189,20 +193,26 @@ if __name__ == "__main__":
 
                 T.append( (netvlad_at_i[i], netvlad_at_i[argmax], score) )
 
-        #TODO: Do geometric filtering. This is a locality and threshold filtering.
+                plot_handle.create()
+                cv2.imshow( 'plot', plot_handle.plot( DOT ).astype('uint8') )
+                cv2.waitKey(0)
+
+        # This is a locality and threshold filtering.
         S = filter_candidates( T, TH=0., locality=8 )
 
     else:
         # Load the candidates from json file
         # loopcandidate_json_fname = BASE+'/loopcandidates_ibow_lcd.json'
-        loopcandidate_json_fname = BASE+'/loopcandidates_dbow.json'
+        # loopcandidate_json_fname = BASE+'/loopcandidates_dbow.json'
+        loopcandidate_json_fname = BASE+'/loopcandidates_liverun.json'
         print 'LOAD file: ', loopcandidate_json_fname
         with open(loopcandidate_json_fname) as f:
             loopcandidate__data = json.load(f)
 
         T = []
         for l in loopcandidate__data:
-            T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
+            # T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
+            T.append(  ( l['global_a'], l['global_b'], l['score'] ) )
         # code.interact( local=locals() )
         # quit()
 
@@ -245,6 +255,8 @@ if __name__ == "__main__":
                     <p> play like a video\n\
                     <c> compare current candidates with manual annotations (not in use)\n\
                     <f> next filtering mode\n\
+                    <j> double the TH_step\n\
+                    <k> half the TH_step\n\
                     <q> to quit.' %(TH_step)
             print_msg = False
 
@@ -278,6 +290,13 @@ if __name__ == "__main__":
             if do_filter_candidates >= do_filter_candidates_len:
                 do_filter_candidates = 0
             print_msg = True
+
+        if key == ord( 'r' ):
+            TH_step = 0.005
+        if key == ord( 'j' ):
+            TH_step /= 2.0
+        if key == ord( 'k' ):
+            TH_step *= 2.0
         # if key == ord( 'c' ):
             # compare_with_manual( T, dump_file_ptr=pr_file_ptr )
         # if key == ord( 'v'):
@@ -291,7 +310,7 @@ if __name__ == "__main__":
     print 'Write File containing loop candidates: ', BASE+'loop_candidates.txt'
     print 'nCandidates : ', len(T), '\tFiltered Candidates : ', len(S)
     with open(BASE+"loop_candidates.txt", "w") as text_file:
-        text_file.write( '#curr,prev,score\n#TH=%f\n' %(TH))
+        text_file.write( '#curr,prev,score\n#TH=%f\n#generated with place_recog_analysis_tool on %s\n' %(TH, str(datetime.datetime.now())))
         for s in S:
             text_file.write( '%d, %d, %f\n' %(s[0], s[1], s[2]) )
 

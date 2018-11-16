@@ -24,6 +24,10 @@ find_package(Eigen3 REQUIRED)
 set( CMAKE_CXX_STANDARD 11 )
 
 
+
+find_package(Ceres REQUIRED)
+include_directories(${CERES_INCLUDE_DIRS})
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -171,7 +175,7 @@ FILE(GLOB KuseUtilSources
             utils/RawFileIO.cpp
             utils/PoseManipUtils.cpp
             utils/RosMarkerUtils.cpp
-            PinholeCamera.cpp
+            src_geometry/PinholeCamera.cpp
     )
 
 # Json loading
@@ -193,10 +197,33 @@ FILE(GLOB dbow3Sources
     )
 INCLUDE_DIRECTORIES( utils/dbow3_core )
 
-
+# camodocal
+include_directories(utils/camodocal/include)
+FILE(GLOB CamodocalCameraModelSources
+        utils/camodocal/src/chessboard/Chessboard.cc
+        utils/camodocal/src/calib/CameraCalibration.cc
+        utils/camodocal/src/camera_models/Camera.cc
+        utils/camodocal/src/camera_models/CameraFactory.cc
+        utils/camodocal/src/camera_models/CostFunctionFactory.cc
+        utils/camodocal/src/camera_models/PinholeCamera.cc
+        utils/camodocal/src/camera_models/CataCamera.cc
+        utils/camodocal/src/camera_models/EquidistantCamera.cc
+        utils/camodocal/src/camera_models/ScaramuzzaCamera.cc
+        utils/camodocal/src/sparse_graph/Transform.cc
+        utils/camodocal/src/gpl/gpl.cc
+        utils/camodocal/src/gpl/EigenQuaternionParameterization.cc
+    )
 
 add_executable( samplepublish  src_geometry/samplepublish.cpp )
 add_executable( sample_3d_publish  src_geometry/sample_3d_publish.cpp  ${KuseUtilSources})
+add_executable( test_camodocal src_geometry/test_camodocal.cpp  ${CamodocalCameraModelSources} )
+
+
+add_executable( camodocal_projection_test
+                    src_geometry/camodocal_projection_test.cpp
+                    ${CamodocalCameraModelSources}
+                    ${KuseUtilSources}
+                    )
 
 add_executable( place_recog_dbow3
                     src_place_recog/place_recog_dbow3.cpp
@@ -212,6 +239,18 @@ target_link_libraries( samplepublish
 target_link_libraries( sample_3d_publish
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
+)
+
+target_link_libraries( test_camodocal
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${CERES_LIBRARIES}
+)
+
+target_link_libraries( camodocal_projection_test
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${CERES_LIBRARIES}
 )
 
 target_link_libraries( place_recog_dbow3

@@ -69,11 +69,8 @@ void MiscUtils::plot_point_sets( cv::Mat& im, const MatrixXd& pts_set,
 // TODO: call the next function instead of actually doing the work.
 void MiscUtils::plot_point_sets( const cv::Mat& im, const cv::Mat& pts_set, cv::Mat& dst, const cv::Scalar& color, bool enable_keypoint_annotation, const string& msg )
 {
-  // TODO consider addressof(a) == addressof(b)
-  // dst = im.clone();
 
-
-  if( im.data == dst.data ) {
+  if( im.data == dst.data ) { // this is pointer comparison to know if this operation is inplace
     //   cout << "src and dst are same\n";
       // src and dst images are same, so dont copy. just ensure it is a 3 channel image.
       assert( im.rows > 0 && im.cols > 0 && "\n[MiscUtils::plot_point_sets]Image appears to be emoty. cannot plot.\n");
