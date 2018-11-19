@@ -66,7 +66,7 @@ def filter_candidates_lt_thresh( T, TH ):
 #         return preds
 
 if __name__ == "__main__":
-    BASE = '/Bulk_Data/_tmp/'
+    # BASE = '/Bulk_Data/_tmp/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
@@ -77,6 +77,8 @@ if __name__ == "__main__":
 
     # BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
     # BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_tpt_park/'
+
+    BASE = '/Bulk_Data/_tmp_cerebro/tum_magistrale2/'
 
     #
     # Open Log File and load VIO poses.
@@ -114,7 +116,7 @@ if __name__ == "__main__":
 
 
     # Create Loop Candidates or Load file loopcandidates_?_.json
-    if True:
+    if False:
         #
         # Loops over all images and precomputes their netvlad vector (or read the .npz file)
         #

@@ -28,6 +28,10 @@ set( CMAKE_CXX_STANDARD 11 )
 find_package(Ceres REQUIRED)
 include_directories(${CERES_INCLUDE_DIRS})
 
+
+find_package(Theia REQUIRED)
+include_directories(${THEIA_INCLUDE_DIRS})
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -217,7 +221,7 @@ FILE(GLOB CamodocalCameraModelSources
 add_executable( samplepublish  src_geometry/samplepublish.cpp )
 add_executable( sample_3d_publish  src_geometry/sample_3d_publish.cpp  ${KuseUtilSources})
 add_executable( test_camodocal src_geometry/test_camodocal.cpp  ${CamodocalCameraModelSources} )
-
+add_executable( test_theia src_geometry/test_theia.cpp  )
 
 add_executable( camodocal_projection_test
                     src_geometry/camodocal_projection_test.cpp
@@ -246,6 +250,8 @@ target_link_libraries( test_camodocal
   ${catkin_LIBRARIES}
   ${CERES_LIBRARIES}
 )
+
+target_link_libraries( test_theia ${catkin_LIBRARIES} ${THEIA_LIBRARIES} )
 
 target_link_libraries( camodocal_projection_test
   ${OpenCV_LIBRARIES}

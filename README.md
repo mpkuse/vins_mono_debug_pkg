@@ -39,3 +39,20 @@ This can also be put in a catkin_ws and will compile with catkin_make.
 - include : ros generated include
 - rviz : .rviz files
 - utils : my collection of cpp utils. This can be included in cpp programs
+
+### TheiaSFM Installation
+In `src_geometry`, I am trying some algorithms from [TheiaSFM](http://www.theia-sfm.org/).
+
+- Install Open Image IO. [github-repo](https://github.com/OpenImageIO/oiio)
+    ```
+    $ git checkout Release-1.7.6RC1
+    $ make -j 12
+    $ cd dist/linux64
+    $ #since there is no make install, will have to manually copy include, lib, share
+    ```
+- Install rocksdb
+    ``` $ apt-get install libsnappy-dev # snappy
+        $ make shared_lib
+        $ make install
+    ```
+- Install TheiaSFM
