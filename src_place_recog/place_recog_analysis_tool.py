@@ -78,7 +78,11 @@ if __name__ == "__main__":
     # BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
     # BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_tpt_park/'
 
-    BASE = '/Bulk_Data/_tmp_cerebro/tum_magistrale2/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/tum_magistrale2/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/tum_magistrale4/'
+
+    BASE = '/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/'
+
 
     #
     # Open Log File and load VIO poses.
