@@ -64,5 +64,7 @@ public:
     /// TODO: Have a flag to read interpret the 1d array as a colmajor.
     static bool read_eigen_matrix( const std::vector<double>& ary, Matrix4d& result );
 
+    bool if_file_exist( char * fname );
+    bool if_file_exist( string fname );
 
 };

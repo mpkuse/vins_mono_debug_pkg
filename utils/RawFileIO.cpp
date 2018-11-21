@@ -299,3 +299,12 @@ bool RawFileIO::read_eigen_matrix( const std::vector<double>& ary, Matrix4d& res
         result(i/4, i%4) = ary[i];
     }
 }
+
+
+bool RawFileIO::if_file_exist( char * fname )
+{
+  ifstream f(fname);
+  return f.good();
+}
+
+bool RawFileIO::if_file_exist( string fname ) { return if_file_exist( fname.c_str() ); }

@@ -235,6 +235,14 @@ add_executable( place_recog_dbow3
                     ${dbow3Sources}
 )
 
+
+
+add_executable( theia_ptcld_from_stereo
+                    src_geometry/theia_ptcld_from_stereo.cpp
+                    ${KuseUtilSources}
+                    ${CamodocalCameraModelSources}
+                )
+
 target_link_libraries( samplepublish
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -263,3 +271,9 @@ target_link_libraries( place_recog_dbow3
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
 )
+
+target_link_libraries( theia_ptcld_from_stereo
+        ${catkin_LIBRARIES}
+        ${THEIA_LIBRARIES}
+        ${OpenCV_LIBRARIES}
+        )

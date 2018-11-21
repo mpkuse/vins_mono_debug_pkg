@@ -466,7 +466,7 @@ CataCamera::estimateIntrinsics(const cv::Size& boardSize,
     setParameters(params);
 }
 
-/** 
+/**
  * \brief Lifts a point from the image plane to the unit sphere
  *
  * \param p image coordinates
@@ -546,7 +546,7 @@ CataCamera::liftSphere(const Eigen::Vector2d& p, Eigen::Vector3d& P) const
     }
 }
 
-/** 
+/**
  * \brief Lifts a point from the image plane to its projective ray
  *
  * \param p image coordinates
@@ -626,7 +626,7 @@ CataCamera::liftProjective(const Eigen::Vector2d& p, Eigen::Vector3d& P) const
 }
 
 
-/** 
+/**
  * \brief Project a 3D point (\a x,\a y,\a z) to the image plane in (\a u,\a v)
  *
  * \param P 3D point coordinates
@@ -659,7 +659,7 @@ CataCamera::spaceToPlane(const Eigen::Vector3d& P, Eigen::Vector2d& p) const
 }
 
 #if 0
-/** 
+/**
  * \brief Project a 3D point to the image plane and calculate Jacobian
  *
  * \param P 3D point coordinates
@@ -718,7 +718,7 @@ CataCamera::spaceToPlane(const Eigen::Vector3d& P, Eigen::Vector2d& p,
     inv_denom = gamma1 * (dudz * dxdmx + dvdz * dxdmy); // reuse
     dvdz = gamma2 * (dudz * dydmx + dvdz * dydmy);
     dudz = inv_denom;
-    
+
     // Apply generalised projection matrix
     p << gamma1 * p_d(0) + mParameters.u0(),
          gamma2 * p_d(1) + mParameters.v0();
@@ -728,7 +728,7 @@ CataCamera::spaceToPlane(const Eigen::Vector3d& P, Eigen::Vector2d& p,
 }
 #endif
 
-/** 
+/**
  * \brief Projects an undistorted 2D point p_u to the image plane
  *
  * \param p_u 2D point coordinates
@@ -756,9 +756,9 @@ CataCamera::undistToPlane(const Eigen::Vector2d& p_u, Eigen::Vector2d& p) const
          mParameters.gamma2() * p_d(1) + mParameters.v0();
 }
 
-/** 
+/**
  * \brief Apply distortion to input point (from the normalised plane)
- *  
+ *
  * \param p_u undistorted coordinates of point on the normalised plane
  * \return to obtain the distorted point: p_d = p_u + d_u
  */
@@ -781,7 +781,7 @@ CataCamera::distortion(const Eigen::Vector2d& p_u, Eigen::Vector2d& d_u) const
            p_u(1) * rad_dist_u + 2.0 * p2 * mxy_u + p1 * (rho2_u + 2.0 * my2_u);
 }
 
-/** 
+/**
  * \brief Apply distortion to input point (from the normalised plane)
  *        and calculate Jacobian
  *

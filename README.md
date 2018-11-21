@@ -31,7 +31,7 @@ calibration. About 50-100 images are enought.
 ```
 ./intrinsic_calib -i /Bulk_Data/ros_bags/mynteye/calib/calib1/ -p cam0_ -e .png -w 8 -h 12 -s 80
 
-./stereo_calib -i /Bulk_Data/ros_bags/mynteye/calib/calib1_sampled/  --prefix-l cam0_ --prefix-r cam1_ -e .png -w 8 -h 12 -s 80
+./stereo_calib -i /Bulk_Data/ros_bags/mynteye/calib/calib1_sampled/  --prefix-l cam0_ --prefix-r cam1_ -e .png -w 8 -h 12 -s 80 --opencv -v
 ```
 
 ### Catkin Compilation

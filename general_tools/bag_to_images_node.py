@@ -8,8 +8,12 @@ import cv2
 cv2.ocl.setUseOpenCL(False)
 from cv_bridge import CvBridge, CvBridgeError
 
+import os
+
 # OUT_BASE = '/Bulk_Data/ros_bags/tum-vins-dataset/tumvi/calibrated/512_16/calibration_bags/dataset-calib-cam1_512_16/'
-OUT_BASE = '/Bulk_Data/ros_bags/mynteye/calib/calib1/'
+OUT_BASE = '/Bulk_Data/ros_bags/mynteye/calib/calib2/'
+print 'mkdir ', OUT_BASE
+os.makedirs( OUT_BASE )
 
 def callback(data):
     print( 'Received %s Image size=%d,%d' %(str(data.header.stamp), data.height, data.width ) )

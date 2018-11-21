@@ -312,3 +312,20 @@ void RosMarkerUtils::add_points_to_marker( const MatrixXd& X, visualization_msgs
         marker.points.push_back( pt );
     }
 }
+
+
+void RosMarkerUtils::add_colors_to_marker( const MatrixXd& X, visualization_msgs::Marker& marker, bool clear_prev_colors )
+{
+    assert( (X.rows() == 3) && "[RosMarkerUtils::add_colors_to_marker] X need to of size 3xN representing rgb colors of the points\n" );
+    // geometry_msgs::Point pt;
+    std_msgs::ColorRGBA pt_color;
+
+    if( clear_prev_colors )
+        marker.colors.clear();
+
+
+    for( int i=0 ; i<X.cols() ; i++ ) {
+        pt_color.r = X(0,i); pt_color.g = X(1,i); pt_color.b = X(2,i); pt_color.a = 1.0;
+        marker.colors.push_back( pt_color );
+    }
+}

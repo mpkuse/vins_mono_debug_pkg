@@ -19,7 +19,7 @@ int main()
     // TODO: If there is time can integrate opencv with theia. Mainly for feature detector and descriptors.
     // will have to inherit Feature Detector class. Doable but it is a waste of my time.
 
-    
+
 
     Vector2d x[3]; //image pts
     Vector3d X[3]; //world pts

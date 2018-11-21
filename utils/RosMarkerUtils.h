@@ -23,6 +23,7 @@
 #include <geometry_msgs/Point.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <std_msgs/ColorRGBA.h>
 
 
 using namespace std;
@@ -57,4 +58,5 @@ public:
     static void add_point_to_marker( const Vector3d& X, visualization_msgs::Marker& marker, bool clear_prev_points=true );
     static void add_point_to_marker( const Vector4d& X, visualization_msgs::Marker& marker, bool clear_prev_points=true );
     static void add_points_to_marker( const MatrixXd& X, visualization_msgs::Marker& marker, bool clear_prev_points=true ); //X : 3xN or 4xN.
+    static void add_colors_to_marker( const MatrixXd& X, visualization_msgs::Marker& marker, bool clear_prev_colors=true ); //X : 3xN r,g,b \in (0,1.0)
 };
