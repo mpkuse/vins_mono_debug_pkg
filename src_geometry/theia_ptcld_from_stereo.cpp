@@ -46,27 +46,27 @@ int main(int argc, char ** argv)
     // m_camera_left = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.0.yaml");
     // m_camera_right = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.1.yaml");
 
-    m_camera_left = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string("/app/catkin_ws/src/vins_mono_debug_pkg/build/stereo")+"/camera_left.yaml");
-    m_camera_right = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string("/app/catkin_ws/src/vins_mono_debug_pkg/build/stereo")+"/camera_right.yaml");
+    m_camera_left = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string("/app/catkin_ws/src/vins_mono_debug_pkg/build/stereo_calib2_pinhole")+"/camera_left.yaml");
+    m_camera_right = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string("/app/catkin_ws/src/vins_mono_debug_pkg/build/stereo_calib2_pinhole")+"/camera_right.yaml");
 
-    
+
 
     assert( m_camera_right && m_camera_left );
     cout << m_camera_left->parametersToString() << endl;
     cout << m_camera_right->parametersToString() << endl;
 
     ElapsedTime timer;
-    int frame_id = 264;
+    int frame_id = 2;
     while( ros::ok() )
     {
-
+    frame_id++;
     //
     // Load Left Image
     cout << "READ IMAGE : " << BASE+"/"+std::to_string(frame_id)+".jpg" << endl;
     cv::Mat im_left = cv::imread( BASE+"/"+std::to_string(frame_id)+".jpg" );
     if( im_left.rows == 0 || im_left.cols == 0 )
         continue;
-    cv::imshow( "left", im_left );
+    // cv::imshow( "left", im_left );
 
 
     //
@@ -75,7 +75,7 @@ int main(int argc, char ** argv)
     cv::Mat im_right = cv::imread( BASE+"/"+ std::to_string(frame_id)+"_1.jpg" );
     if( im_right.rows == 0 || im_right.cols == 0 )
         continue;
-    cv::imshow( "right", im_right );
+    // cv::imshow( "right", im_right );
 
     Matrix4d wTc;
     if( !RawFileIO::read_eigen_matrix( BASE+"/"+to_string(frame_id)+".wTc" , wTc ) )
@@ -87,7 +87,7 @@ int main(int argc, char ** argv)
     std::vector<cv::KeyPoint> kp1, kp2;
     cv::Mat d1, d2;
 
-	cv::Ptr<cv::ORB> orb = cv::ORB::create(5000);
+	cv::Ptr<cv::ORB> orb = cv::ORB::create(10000);
 	orb->setFastThreshold(0);
 
     timer.tic();
@@ -138,7 +138,7 @@ int main(int argc, char ** argv)
     MiscUtils::plot_point_pair( im_left, M1, -1, im_right, M2, -1, dst, 0 );
     cv::imshow( "dst", dst );
 
-    cv::waitKey(0);
+    // cv::waitKey(0);
 
     //
     // Triangulate
@@ -179,26 +179,27 @@ int main(int argc, char ** argv)
 
 
 
-    MatrixXd triangulated_pts = MatrixXd::Zero( 3, M1.cols() );
+    MatrixXd triangulated_pts = MatrixXd::Zero( 3, M1.cols() ) ;
     MatrixXd triangulated_pts_colors = MatrixXd::Zero( 3, M1.cols() );
     timer.tic();
+    int n_zpositive = 0;
     for( int k=0 ; k<M1.cols() ; k++ ) { // for each imaged point
-        cout << TermColor::RED() << "---" << k << "---" << TermColor::RESET() << "\n";
+        // cout << TermColor::RED() << "---" << k << "---" << TermColor::RESET() << "\n";
         // -----a
         Vector2d im1_cord = M1.col(k);
-        cout << "im1_cord:" << im1_cord.transpose() << endl;
+        // cout << "im1_cord:" << im1_cord.transpose() << endl;
         Vector3d sphere1_cord;
         m_camera_left->liftProjective( im1_cord, sphere1_cord );
         sphere1_cord = sphere1_cord / sphere1_cord(2);
-        cout << "sphere1_cord:" << sphere1_cord.transpose()  << endl;
+        // cout << "sphere1_cord:" << sphere1_cord.transpose()  << endl;
 
 
         Vector2d im2_cord = M2.col(k);
-        cout << "im2_cord:" << im2_cord.transpose() << endl;
+        // cout << "im2_cord:" << im2_cord.transpose() << endl;
         Vector3d sphere2_cord;
         m_camera_right->liftProjective( im2_cord, sphere2_cord );
         sphere2_cord = sphere2_cord / sphere2_cord(2);
-        cout << "sphere2_cord:" << sphere2_cord.transpose()  << endl;
+        // cout << "sphere2_cord:" << sphere2_cord.transpose()  << endl;
 
         Vector2d _im1_nrm, _im2_nrm;
         _im1_nrm = sphere1_cord.topRows(2);
@@ -209,39 +210,62 @@ int main(int argc, char ** argv)
         // -----c
         Vector4d _3dpt;
         theia::Triangulate( _pose1_3x4, _pose2_3x4, _im1_nrm, _im2_nrm, &_3dpt );
-        triangulated_pts.col(k) = _3dpt.topRows(3) / _3dpt(3);
-        cout << "_3dpt:" << _3dpt.transpose()<< "\t";
-        cout << "_3dpt_nonhomo:" << triangulated_pts.col(k).transpose() << endl;
+
+        Vector3d _3dpt_nonhomo = _3dpt.topRows(3) / _3dpt(3);;
+
+
+        // only retain points which are in front and whose reprojection error is small.
+
+        // store only only in front
+        if( _3dpt_nonhomo(2) < 0 || _3dpt_nonhomo(2) > 10. )
+            continue;
+
+        // reproject
+        Vector2d reproj;
+        m_camera_left->spaceToPlane( _3dpt_nonhomo, reproj );
+        if( abs(reproj(0) - im1_cord(0)) > 0.7 || abs(reproj(1) - im1_cord(1)) > .7 )
+            continue;
+
+        triangulated_pts.col(n_zpositive) = _3dpt_nonhomo;
+        // cout << "_3dpt:" << _3dpt.transpose()<< "\t";
+        // cout << "_3dpt_nonhomo:" << triangulated_pts.col(k).transpose() << endl;
+
+
+
 
 
         // cv::Vec3b _col = im_left.at<cv::Vec3d>( (int)im1_cord(1), (int)im1_cord(0) );
         uchar _col = im_left.at<uchar>( (int)im1_cord(1), (int)im1_cord(0) );
-        triangulated_pts_colors(0,k) = double(_col)/ 255.;
-        triangulated_pts_colors(1,k) = double(_col)/ 255.;
-        triangulated_pts_colors(2,k) = double(_col)/ 255.;
+        triangulated_pts_colors(0,n_zpositive) = double(_col)/ 255.;
+        triangulated_pts_colors(1,n_zpositive) = double(_col)/ 255.;
+        triangulated_pts_colors(2,n_zpositive) = double(_col)/ 255.;
         // cout << "_3dpt_color: " << triangulated_pts_colors.col(k).transpose() << endl;
+
+
+        n_zpositive++;
+
     }
 
     cout << "Triangulation of " << M1.cols() << " pts done in (ms): " << timer.toc_milli() << endl;
-
+    cout << "n_zpositive" << n_zpositive << endl;
 
     // ------d : visualization
     // -------------------- reproject 3d points
-    MatrixXd reprojected_pts = MatrixXd::Zero( 2, M1.cols() );
-    for( int k=0 ; k<M1.cols() ; k++ ) {
+    MatrixXd reprojected_pts = MatrixXd::Zero( 2, n_zpositive );
+    for( int k=0 ; k<n_zpositive ; k++ ) {
         Vector3d P = triangulated_pts.col(k);
         Vector2d p;
-        // m_camera_left->spaceToPlane( P, p );
-        m_camera_right->spaceToPlane( P, p );
+        m_camera_left->spaceToPlane( P, p );
+        // m_camera_right->spaceToPlane( P, p );
         reprojected_pts.col(k) = p;
-        cout << k << " P:" << P.transpose() << "\t";
-        cout << "p:" << p.transpose() << endl;
+        // cout << k << " P:" << P.transpose() << "\t";
+        // cout << "p:" << p.transpose() << endl;
     }
-    // MiscUtils::plot_point_sets( dst_left, reprojected_pts, cv::Scalar(255,0,0), false, "reprohected in blue" );
-    // cv::imshow( "dst_left", dst_left );
-    MiscUtils::plot_point_sets( dst_right, reprojected_pts, cv::Scalar(255,0,0), false, "reprohected in blue" );
-    cv::imshow( "dst_right", dst_right );
-    cv::waitKey(0);
+    MiscUtils::plot_point_sets( dst_left, reprojected_pts, cv::Scalar(255,0,0), false, "reprohected in blue;"+to_string(M1.cols())+";n_zpositive"+to_string(n_zpositive)+";%="+to_string(float(n_zpositive)/M1.cols()) );
+    cv::imshow( "dst_left", dst_left );
+    // MiscUtils::plot_point_sets( dst_right, reprojected_pts, cv::Scalar(255,0,0), false, "reprohected in blue" );
+    // cv::imshow( "dst_right", dst_right );
+    cv::waitKey(10);
 
 
 
@@ -250,11 +274,11 @@ int main(int argc, char ** argv)
     RosMarkerUtils::init_camera_marker( cam_left, -1.0 );
     cam_left.ns = "camera";
     cam_left.id = 2*frame_id + 0;
-    RosMarkerUtils::setpose_to_marker( pose1, cam_left );
+    RosMarkerUtils::setpose_to_marker( wTc, cam_left );
     RosMarkerUtils::init_camera_marker( cam_right, -1.0 );
     cam_right.ns = "camera";
     cam_right.id = 2*frame_id + 1;
-    RosMarkerUtils::setpose_to_marker( pose2_inv, cam_right );
+    RosMarkerUtils::setpose_to_marker( wTc * pose2_inv, cam_right );
     RosMarkerUtils::setcolor_to_marker( 1.0, 1.0, 1.0, cam_left );
     RosMarkerUtils::setcolor_to_marker( 0.0, 1.0, 0.0, cam_right );
 
@@ -265,16 +289,16 @@ int main(int argc, char ** argv)
     ptcld_marker.id = frame_id + 0;
     ptcld_marker.scale.x = 0.02;
     ptcld_marker.scale.y = 0.02;
-    RosMarkerUtils::add_points_to_marker( triangulated_pts, ptcld_marker );
-    RosMarkerUtils::add_colors_to_marker( triangulated_pts_colors, ptcld_marker );
+    MatrixXd triangulated_pts_homo = MatrixXd::Constant( 4, n_zpositive ,1.0);
+    triangulated_pts_homo.topLeftCorner(3,n_zpositive) = triangulated_pts.leftCols(n_zpositive);
+    RosMarkerUtils::add_points_to_marker( wTc* triangulated_pts_homo, ptcld_marker );
+    RosMarkerUtils::add_colors_to_marker( triangulated_pts_colors.leftCols(n_zpositive), ptcld_marker );
 
     chatter_pub.publish( cam_left );
     chatter_pub.publish( cam_right );
     chatter_pub.publish( ptcld_marker );
     ros::spinOnce();
     loop_rate.sleep();
-    frame_id++;
-    break;
 
     }
 

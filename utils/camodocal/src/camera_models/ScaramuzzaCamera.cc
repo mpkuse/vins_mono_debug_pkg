@@ -259,7 +259,7 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
             double X = objPts.at(corner_index).x;
             double Y = objPts.at(corner_index).y;
             assert(objPts.at(corner_index).z==0.0);
-            
+
             double u = imgPts.at(corner_index).x;
             double v = imgPts.at(corner_index).y;
 
@@ -304,14 +304,14 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
                 const double sr32 = static_cast<double>(sign) * std::sqrt(sr32_squared);
                 sr32_values.push_back( sr32 );
                 if (sr32_squared == 0.0) {
-                    // sr31 can be calculated through norm equality, 
+                    // sr31 can be calculated through norm equality,
                     // but it has positive and negative posibilities
                     // positive one
                     sr31_values.push_back(std::sqrt(CC-BB));
                     // negative one
                     sr32_values.push_back( sr32 );
                     sr31_values.push_back(-std::sqrt(CC-BB));
-                    
+
                     break; // skip the same situation
                 } else {
                     // sr31 can be calculated throught dot product == 0
@@ -325,7 +325,7 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
 
         assert(!sr31_values.empty());
         assert(sr31_values.size() == sr32_values.size());
-        
+
         std::vector<Eigen::Matrix3d> H_values;
         for(size_t i=0;i<sr31_values.size(); ++i) {
             const double sr31 = sr31_values.at(i);
@@ -349,7 +349,7 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
             R.col(2) = H.col(0).cross(H.col(1));
             // std::cout << "R33 = " << R(2,2) << std::endl;
         }
-        
+
         std::vector<Eigen::Matrix3d> H_candidates;
 
         for (auto& H : H_values)
@@ -373,7 +373,7 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
             // const double& r33 = H(2,2);
             const double& t1  = H(0);
             const double& t2  = H(1);
-                
+
             // iterate chessboard corners in the image
             for(size_t j=0; j<imagePoints.at(image_index).size(); ++j) {
                 assert(line_index == 2 * j);
@@ -389,14 +389,14 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
                 double D = u * (r31 * X + r32 * Y);
                 double rou = std::sqrt(u*u + v*v);
 
-                
+
                 A_mat(line_index+0, 0) = A;
                 A_mat(line_index+1, 0) = C;
                 A_mat(line_index+0, 1) = A * rou;
                 A_mat(line_index+1, 1) = C * rou;
                 A_mat(line_index+0, 2) = A * rou * rou;
                 A_mat(line_index+1, 2) = C * rou * rou;
-                
+
                 A_mat(line_index+0, 3) = -v;
                 A_mat(line_index+1, 3) = -u;
                 B_vec(line_index+0) = B;
@@ -426,10 +426,10 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
 
         Eigen::Matrix3d& H = H_candidates.front();
 
-        Eigen::Matrix3d R; 
-        R.col(0) = H.col(0); 
-        R.col(1) = H.col(1); 
-        R.col(2) = H.col(0).cross(H.col(1)); 
+        Eigen::Matrix3d R;
+        R.col(0) = H.col(0);
+        R.col(1) = H.col(1);
+        R.col(2) = H.col(0).cross(H.col(1));
 
         Eigen::Vector3d T = H.col(2);
         RList.push_back(R);
@@ -459,7 +459,7 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
         // const double& r33 = RList.at(i)(2,2);
         const double& t1  = TList.at(i)(0);
         const double& t2  = TList.at(i)(1);
-        
+
         // iterate chessboard corners in the image
         for(size_t j=0; j<imagePoints.at(i).size(); ++j) {
             assert(line_index == 2 * (i * imagePoints.at(0).size() + j));
@@ -487,7 +487,7 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
                 A_mat(line_index+0, k-1) = A * pow_rou;
                 A_mat(line_index+1, k-1) = C * pow_rou;
             }
-            
+
             A_mat(line_index+0, SCARAMUZZA_POLY_SIZE-1+i) = -v;
             A_mat(line_index+1, SCARAMUZZA_POLY_SIZE-1+i) = -u;
             B_vec(line_index+0) = B;
@@ -523,7 +523,7 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
 
     params.center_x() = params.imageWidth() / 2.0;
     params.center_y() = params.imageHeight() / 2.0;
-    
+
     for(size_t i=0; i<SCARAMUZZA_POLY_SIZE; ++i) {
         params.poly(i) = poly_coeff[i];
     }
@@ -534,7 +534,7 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
     // params.poly(3) = -0.0000019866;
     // params.poly(4) =  0.0000000077;
 
-    
+
     // inv_poly
     {
         std::vector<double> rou_vec;
@@ -565,7 +565,7 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
         // use lower order poly to eliminate over-fitting cause by noisy/inaccurate data
         const int poly_fit_order = 4;
         Eigen::VectorXd inv_poly_coeff = polyfit(xVec, yVec, poly_fit_order);
-        
+
         for(int i=0; i<=poly_fit_order; ++i) {
             params.inv_poly(i) = inv_poly_coeff(i);
         }
@@ -573,10 +573,10 @@ OCAMCamera::estimateIntrinsics(const cv::Size& boardSize,
 
     setParameters(params);
 
-    std::cout << "initial params:\n" << params << std::endl; 
+    std::cout << "initial params:\n" << params << std::endl;
 }
 
-/** 
+/**
  * \brief Lifts a point from the image plane to the unit sphere
  *
  * \param p image coordinates
@@ -589,7 +589,7 @@ OCAMCamera::liftSphere(const Eigen::Vector2d& p, Eigen::Vector3d& P) const
     P.normalize();
 }
 
-/** 
+/**
  * \brief Lifts a point from the image plane to its projective ray
  *
  * \param p image coordinates
@@ -622,7 +622,7 @@ OCAMCamera::liftProjective(const Eigen::Vector2d& p, Eigen::Vector3d& P) const
 }
 
 
-/** 
+/**
  * \brief Project a 3D point (\a x,\a y,\a z) to the image plane in (\a u,\a v)
  *
  * \param P 3D point coordinates
@@ -653,7 +653,7 @@ OCAMCamera::spaceToPlane(const Eigen::Vector3d& P, Eigen::Vector2d& p) const
 }
 
 
-/** 
+/**
  * \brief Projects an undistorted 2D point p_u to the image plane
  *
  * \param p_u 2D point coordinates

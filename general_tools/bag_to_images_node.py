@@ -11,7 +11,9 @@ from cv_bridge import CvBridge, CvBridgeError
 import os
 
 # OUT_BASE = '/Bulk_Data/ros_bags/tum-vins-dataset/tumvi/calibrated/512_16/calibration_bags/dataset-calib-cam1_512_16/'
-OUT_BASE = '/Bulk_Data/ros_bags/mynteye/calib/calib2/'
+# OUT_BASE = '/Bulk_Data/ros_bags/mynteye/calib/calib2/'
+# OUT_BASE = '/Bulk_Data/ros_bags/bluefox_stereo/calib/leveled_cam/'
+OUT_BASE = '/Bulk_Data/ros_bags/bluefox_stereo/calib/right_titled/'
 print 'mkdir ', OUT_BASE
 os.makedirs( OUT_BASE )
 
@@ -35,8 +37,14 @@ if __name__ == '__main__':
     # sub1 = rospy.Subscriber( "/cam0/image_raw", Image, callback)
     # sub2 = rospy.Subscriber( "/cam1/image_raw", Image, callback1)
 
-    sub1 = rospy.Subscriber( "/mynteye/left/image_raw", Image, callback)
-    sub2 = rospy.Subscriber( "/mynteye/right/image_raw", Image, callback1)
+    # mynt eye
+    # sub1 = rospy.Subscriber( "/mynteye/left/image_raw", Image, callback)
+    # sub2 = rospy.Subscriber( "/mynteye/right/image_raw", Image, callback1)
+
+    # bluefox stereo
+    sub1 = rospy.Subscriber( "/stereo/left/image_raw", Image, callback)
+    sub2 = rospy.Subscriber( "/stereo/right/image_raw", Image, callback1)
+
 
     print 'rospy.spin()'
     rospy.spin()

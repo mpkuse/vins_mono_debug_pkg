@@ -81,7 +81,9 @@ if __name__ == "__main__":
     # BASE = '/Bulk_Data/_tmp_cerebro/tum_magistrale2/'
     # BASE = '/Bulk_Data/_tmp_cerebro/tum_magistrale4/'
 
-    BASE = '/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/'
+    BASE = '/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/'
+
 
 
     #
@@ -208,17 +210,17 @@ if __name__ == "__main__":
 
     else:
         # Load the candidates from json file
-        # loopcandidate_json_fname = BASE+'/loopcandidates_ibow_lcd.json'
+        loopcandidate_json_fname = BASE+'/loopcandidates_ibow_lcd.json'
         # loopcandidate_json_fname = BASE+'/loopcandidates_dbow.json'
-        loopcandidate_json_fname = BASE+'/loopcandidates_liverun.json'
+        # loopcandidate_json_fname = BASE+'/loopcandidates_liverun.json'
         print 'LOAD file: ', loopcandidate_json_fname
         with open(loopcandidate_json_fname) as f:
             loopcandidate__data = json.load(f)
 
         T = []
         for l in loopcandidate__data:
-            # T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
-            T.append(  ( l['global_a'], l['global_b'], l['score'] ) )
+            T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
+            # T.append(  ( l['global_a'], l['global_b'], l['score'] ) )
         # code.interact( local=locals() )
         # quit()
 
