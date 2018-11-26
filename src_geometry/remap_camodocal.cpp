@@ -15,13 +15,15 @@
 #include "../utils/MiscUtils.h"
 #include "../utils/ElapsedTime.h"
 #include "../utils/PoseManipUtils.h"
+#include "../utils/TermColor.h"
+#include "../utils/CameraGeometry.h"
 
 // For a camera gets a K
 void getK( camodocal::CameraPtr m_cam, Matrix3d& K )
 {
     Matrix3d K_rect;
     vector<double> m_camera_params;
-    m_cam->writeParameters( m_camera_params );
+    m_cam->writeParameters( m_camera_params ); // retrive camera params from Abstract Camera.
     // camodocal::CataCamera::Parameters p();
     // cout << "size=" << m_camera_params.size() << " ::>\n" ;
     // for( int i=0 ; i<m_camera_params.size() ; i++ ) cout << "\t" << i << " " << m_camera_params[i] << endl;
@@ -38,9 +40,14 @@ void getK( camodocal::CameraPtr m_cam, Matrix3d& K )
                       0, m_camera_params[5], m_camera_params[7],
                       0, 0, 1;
             break;
+        case camodocal::Camera::ModelType::KANNALA_BRANDT:
+            K_rect << m_camera_params[4], 0, m_camera_params[6],
+                      0, m_camera_params[5], m_camera_params[7],
+                      0, 0, 1;
+            break;
             default:
             // TODO: Implement for other models. Look at initUndistortRectifyMap for each of the abstract class.
-            cout << "Wrong\nQuit....";
+            cout << "[getK] Wrong\nQuit....";
             exit(10);
 
     }
@@ -49,9 +56,9 @@ void getK( camodocal::CameraPtr m_cam, Matrix3d& K )
 
 
 // new K
-void getK( float new_fx, float new_fy, float new_cx, float new_cy, Matrix3d& K )
+void make_K( float new_fx, float new_fy, float new_cx, float new_cy, Matrix3d& K )
 {
-    // TODO: Pass these as arguments
+    // Pass these as arguments
     // float new_fx = 375.;
     // float new_fy = 375.;
     // float new_cx = 376.;
@@ -63,14 +70,6 @@ void getK( float new_fx, float new_fy, float new_cx, float new_cy, Matrix3d& K )
 
 }
 
-void toCross( const Vector3d& t, Matrix3d& Tx )
-{
-    // Tx = Matrix3d::Zero();
-    Tx << 0, -t(2) , t(1) ,
-          t(2), 0,  -t(0),
-          -t(1), t(0), 0;
-
-}
 
 void do_image_undistortion( camodocal::CameraPtr m_cam, Matrix3d new_K, const cv::Mat& im_raw, cv::Mat & im_undistorted )
 {
@@ -85,43 +84,112 @@ void do_image_undistortion( camodocal::CameraPtr m_cam, Matrix3d new_K, const cv
 }
 
 
-double Slope(int x0, int y0, int x1, int y1){
-     return (double)(y1-y0)/(x1-x0);
-}
-
-void fullLine(cv::Mat& img, cv::Point2f a, cv::Point2f b, cv::Scalar color){
-     double slope = Slope(a.x, a.y, b.x, b.y);
-
-     cv::Point2f p(0,0), q(img.cols,img.rows);
-
-     p.y = -(a.x - p.x) * slope + a.y;
-     q.y = -(b.x - q.x) * slope + b.y;
-
-     cv::line(img,p,q,color,1,8,0);
-}
-
-// draw line on the image. l = (a,b,c) for ax+by+c = 0
-void draw_line( const Vector3d l, cv::Mat& im, cv::Scalar color )
+void compute_stereo_rectification_transform( const Matrix3d& K_new, const Matrix4d& right_T_left, cv::Size imsize,
+    cv::Mat& R1, cv::Mat& R2,
+    cv::Mat& P1, cv::Mat& P2
+                )
 {
-    // C++: void line(Mat& img, Point pt1, Point pt2, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
-    cv::Point2f a(0.0, -l(2)/l(1) );
-    cv::Point2f b(-l(2)/l(0), 0.0 );
-    // cout << a << "<--->" << b << endl;
-    // cv::line( im, a, b, cv::Scalar(255,255,255) );
-    fullLine( im, a, b, color );
+    IOFormat numpyFmt(FullPrecision, 0, ", ", ",\n", "[", "]", "[", "]");
+
+
+    // Adopted from : http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/FUSIELLO/node18.html
+    cout << "[compute_stereo_rectification_transform]" << endl;
+    cout << TermColor::GREEN();
+    cv::Mat K_new_cvmat;
+    cv::eigen2cv( K_new, K_new_cvmat );
+    cout << "K_new_cvmat " << MiscUtils::cvmat_info( K_new_cvmat ) << endl;;
+
+    // cv::Mat D = cv::Mat::zeros( 4,1, CV_64FC1 );
+    // cout << "D " << MiscUtils::cvmat_info( D ) << endl;;
+    cv::Mat D;
+
+    Matrix3d right_R_left = right_T_left.topLeftCorner(3,3);
+    Vector3d right_t_left = right_T_left.col(3).topRows(3);
+    cv::Mat R, T;
+    cv::eigen2cv( right_R_left, R );
+    cv::eigen2cv( right_t_left, T );
+    cout << "R " << MiscUtils::cvmat_info( R ) << endl;
+    cout << "T " << MiscUtils::cvmat_info( T ) << endl;
+
+    cout << "cv::Size w,h = " << imsize.width << " " << imsize.height << endl;
+
+    // cv::Mat R1, R2;
+    // cv::Mat P1, P2;
+    cv::Mat Q;
+    MatrixXd e_R1, e_R2, e_P1, e_P2, e_Q;
+    cv::stereoRectify( K_new_cvmat, D, K_new_cvmat, D, imsize, R, T,
+                        R1, R2, P1, P2, Q
+                    );
+    cv::cv2eigen( R1, e_R1 );
+    cv::cv2eigen( R2, e_R2 );
+    cv::cv2eigen( P1, e_P1 );
+    cv::cv2eigen( P2, e_P2 );
+    cv::cv2eigen( Q, e_Q );
+
+    cout << "R1=" << e_R1.format(numpyFmt) << endl;
+    cout << "R2=" << e_R2.format(numpyFmt) << endl;
+    cout << "P1=" << e_P1.format(numpyFmt) << endl;
+    cout << "P2=" << e_P2.format(numpyFmt) << endl;
+    cout << TermColor::RESET();
+    cout << "[/compute_stereo_rectification_transform]" << endl;
+
 }
 
-void draw_point( const Vector3d pt, cv::Mat& im, cv::Scalar color  )
+
+/*
+void get_rectification_map( const Matrix3d& K_new, const cv::Mat& R1,
+                                cv::Size imsize,
+                                cv::Mat& map_x, cv::Mat& map_y )
 {
-    // C++: void circle(Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
-    cv::circle( im, cv::Point2f( pt(0)/pt(2), pt(1)/pt(2) ), 2, color, -1   );
+    cout << "[get_rectification_map]" << endl;
+    cv::Mat K_new_cvmat;
+    cv::eigen2cv( K_new, K_new_cvmat );
+    cout << "K_new_cvmat " << MiscUtils::cvmat_info( K_new_cvmat ) << endl;;
 
+    cv::Mat D = cv::Mat::zeros( 4,1, CV_64FC1 );
+    cout << "D " << MiscUtils::cvmat_info( D ) << endl;
+
+    // C++: void initUndistortRectifyMap( cameraMatrix,  distCoeffs,  R,  newCameraMatrix,  size,  m1type,  map1,  map2)
+    cv::initUndistortRectifyMap( K_new_cvmat, D, R1, K_new_cvmat, imsize, CV_32FC1, map_x, map_y );
+
+    cout << TermColor::RESET();
+    cout << "[/get_rectification_map]" << endl;
 }
+*/
 
-void draw_point( const Vector2d pt, cv::Mat& im, cv::Scalar color  )
+void get_rectification_map( const Matrix3d& K_new, const cv::Mat& R1, const cv::Mat& P1,
+                                cv::Size imsize,
+                                cv::Mat& map_x, cv::Mat& map_y )
 {
-    cv::circle( im, cv::Point2f( pt(0), pt(1) ), 2, color, -1   );
+    cout << "[get_rectification_map]" << endl;
+    cv::Mat K_new_cvmat;
+    cv::eigen2cv( K_new, K_new_cvmat );
+    cout << "K_new_cvmat " << MiscUtils::cvmat_info( K_new_cvmat ) << endl;;
+
+    cv::Mat D;// = cv::Mat::zeros( 4,1, CV_64FC1 );
+    // cout << "D " << MiscUtils::cvmat_info( D ) << endl;
+
+    // C++: void initUndistortRectifyMap( cameraMatrix,  distCoeffs,  R,  newCameraMatrix,  size,  m1type,  map1,  map2)
+    cv::initUndistortRectifyMap( K_new_cvmat, D, R1, P1, imsize, CV_32FC1, map_x, map_y );
+
+    cout << TermColor::RESET();
+    cout << "[/get_rectification_map]" << endl;
 }
+
+void normalize_disparity_for_vis( const cv::Mat& disp_raw, cv::Mat& disp8 )
+{
+    // given disp raw from sgbm (CV_16UC1) which also has negative values. normaloze it .
+    cv::normalize(disp_raw, disp8, 0, 255, CV_MINMAX, CV_8U);
+    return;
+    disp8 = cv::Mat::zeros( disp_raw.rows, disp_raw.cols, CV_8UC1 );
+    for( int i=0 ; i<disp_raw.rows ; i++ ) {
+        for( int j=0 ; j<disp_raw.cols; j++ ) {
+            if( disp_raw.at<int16_t>(i,j) > 0 )
+                disp8.at<uchar>(i,j) = (uchar) disp_raw.at<int16_t>(i,j);
+        }
+    }
+}
+
 
 // Trying out Epipolar Geometry with camodocal.
 // Theory Background : http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/FUSIELLO/tutorial.html
@@ -161,18 +229,20 @@ int main()
     //
     // Intrinsics
     // Camera intrinsics from camera calibration files. These have no significance in stereo computation. As well not get these.
+    /*
     Matrix3d K, Kd;
     getK( m_camera_left, K );
     getK( m_camera_right, Kd );
     cout << "K\n"<< K << endl;
     cout << "Kd\n"<< Kd << endl;
+    */
 
     // I can set new intrinsic to whatever I want after undistortion.
     // This has been a major point of confusion. Note that K_new just scales the normalized image co-ordinates (irrespective of camera model) to pixels.
     // In case of a stereo pair you want both your camera to have the same scaling.
     Matrix3d K_new;
-    getK( 375.0, 375.0, 376.0, 240.0, K_new );
-    cout << "K_new\n"<< K_new << endl;
+    make_K( 375.0, 375.0, 376.0, 240.0, K_new ); // this can be any arbitrary values, but usually you want to have fx,fy in a similar range to original intrinsic and cx,cy as half of image width and height respectively so that you can view the image correctly
+    cout << "K_new="<< K_new.format(numpyFmt) << endl;
 
     //
     // Extrinsic (Baseline)
@@ -191,6 +261,8 @@ int main()
 
     PoseManipUtils::raw_xyzw_to_eigenmat( _rot_xyzw, _tr_xyz, right_T_left );
     cout << "right_T_left:" << PoseManipUtils::prettyprintMatrix4d( right_T_left ) << endl;
+    cout << "right_Rot_left=" << right_T_left.topLeftCorner(3,3).format(numpyFmt) << endl;
+    cout << "right_trans_left=" << right_T_left.col(3).topRows(3).format(numpyFmt) << endl;
 
     //
     // Load raw image
@@ -208,7 +280,7 @@ int main()
 
     // cout << "right_t_left: " << right_T_left.col(3).topRows(3).transpose() << endl;
     Matrix3d Tx;
-    toCross( right_T_left.col(3).topRows(3), Tx );
+    PoseManipUtils::vec_to_cross_matrix( right_T_left.col(3).topRows(3), Tx );
     // cout << "Tx" << Tx << endl;
 
     // Matrix3d F = Kd.transpose().inverse() * Tx * right_T_left.topLeftCorner(3,3) * K.inverse();  //< Fundamental Matrix
@@ -216,23 +288,23 @@ int main()
     cout << "F="  << F.format(numpyFmt) << endl;
 
 
-    // TODO : try liftProjective to get image cord in normalized co-ordinates. will scale the line back to get it in image cords.
-    // Vector3d x(60, 80, 1.0);
+    // tryout multiple points and get their corresponding epipolar line.
+    #if 1
     for( int i=0 ; i<500; i+=10 ) {
     #if 1
     // take a sample point x on left image and find the corresponding line on the right image
     Vector3d x(1.5*i, i, 1.0);
     Vector3d ld = F * x;
-    draw_point( x, im_left_undistorted, cv::Scalar(255,0,255) );
-    draw_line( ld, im_right_undistorted, cv::Scalar(255,0,255) );
+    MiscUtils::draw_point( x, im_left_undistorted, cv::Scalar(255,0,255) );
+    MiscUtils::draw_line( ld, im_right_undistorted, cv::Scalar(255,0,255) );
     #endif
 
     #if 1
     // take a sample point on right image and find the corresponding line on the left image
     Vector3d xd(i, i, 1.0);
     Vector3d l = F.transpose() * xd;
-    draw_line( l, im_left_undistorted, cv::Scalar(0,0,255) );
-    draw_point( xd, im_right_undistorted, cv::Scalar(0,0,255) );
+    MiscUtils::draw_line( l, im_left_undistorted, cv::Scalar(0,0,255) );
+    MiscUtils::draw_point( xd, im_right_undistorted, cv::Scalar(0,0,255) );
     #endif
 
 
@@ -240,8 +312,64 @@ int main()
     cv::imshow( "right", im_right );
     cv::imshow( "im_left_undistorted", im_left_undistorted );
     cv::imshow( "im_right_undistorted", im_right_undistorted );
-    cv::waitKey(0);
+    cv::waitKey(10);
     }
+    #endif
+
+    //------------------------------------ Stereo Rectify --------------------------------------//
+    // Adopted from : http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/FUSIELLO/node18.html
+    // TODO : Stereo Rectify images and check epipolar geometry again
+
+    // Matrix<double,3,4> P_old_left = K_new * Matrix4d::Identity().topRows( 3 );
+    // Matrix<double,3,4> P_old_right = K_new * right_T_left.topRows( 3 );
+    // cout << "P_old_left=" << P_old_left.format(numpyFmt) << endl;
+    // cout << "P_old_right=" << P_old_right.format(numpyFmt) << endl;
+
+    //-----------------a
+    cv::Mat R1, R2;
+    cv::Mat P1, P2;
+    cv::Size imsize = cv::Size( m_camera_left->imageWidth(), m_camera_left->imageHeight());
+    compute_stereo_rectification_transform( K_new, right_T_left, imsize,
+                R1, R2,
+                P1, P2
+                );
+
+    // cout << "R1\n" << R1 << endl;
+    // cout << "R2\n" << R2 << endl;
+
+    //----------------b
+    cv::Mat map1_x, map1_y;
+    cv::Mat map2_x, map2_y;
+    cv::Size imsize_super = cv::Size( m_camera_left->imageWidth(), m_camera_left->imageHeight());
+    get_rectification_map( K_new, R1, P1, imsize_super, map1_x, map1_y );
+    get_rectification_map( K_new, R2, P2, imsize_super, map2_x, map2_y );
+
+
+    //----------------c
+    cv::Mat im_left_undistorted_srectified, im_right_undistorted_srectified;
+    cv::remap( im_left_undistorted, im_left_undistorted_srectified, map1_x, map1_y, CV_INTER_LINEAR );
+    cv::remap( im_right_undistorted, im_right_undistorted_srectified, map2_x, map2_y, CV_INTER_LINEAR );
+
+    cv::imshow( "im_left_undistorted", im_left_undistorted );
+    cv::imshow( "im_right_undistorted", im_right_undistorted );
+
+    cv::imshow( "im_left_undistorted_srectified", im_left_undistorted_srectified );
+    cv::imshow( "im_right_undistorted_srectified", im_right_undistorted_srectified );
+    cv::waitKey(0);
+
+    // TODO: Need to verify that the epipolar lines are horizontal after this mapping
+
+    //------------------------------- SGBM -------------------------------------------------//
+    cv::Ptr<cv::StereoSGBM> sgbm;
+    sgbm = cv::StereoSGBM::create(0,16,3);
+    cv::Mat hu;
+    sgbm->compute( im_left_undistorted_srectified, im_right_undistorted_srectified, hu );
+    cout << "hu " << MiscUtils::cvmat_info( hu ) << endl;
+    cout << hu << endl;
+    cv::Mat hu8;
+    normalize_disparity_for_vis( hu, hu8);
+    cv::imshow( "hu" , hu8 );
+    cv::waitKey(0);
 }
 
 

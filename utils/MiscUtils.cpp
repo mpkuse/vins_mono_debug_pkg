@@ -229,8 +229,17 @@ void MiscUtils::plot_point_pair( const cv::Mat& imA, const MatrixXd& ptsA, int i
   assert( ptsA.cols() == ptsB.cols() && ptsA.cols() > 0 );
   // assert( mask.size() == ptsA.cols() );
 
-  cv::Mat outImg;
-  cv::hconcat(imA, imB, outImg);
+  cv::Mat outImg_;
+  cv::hconcat(imA, imB, outImg_);
+
+    cv::Mat outImg;
+    if( outImg_.channels() == 3 )
+        outImg = outImg_;
+    else
+        cv::cvtColor( outImg_, outImg, CV_GRAY2BGR );
+
+
+
 
   // loop over all points
   int count = 0;
@@ -270,6 +279,7 @@ void MiscUtils::plot_point_pair( const cv::Mat& imA, const MatrixXd& ptsA, int i
           cv::putText( status, msg_tokens[h].c_str(), cv::Point(10,80+20*h), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255), 1.5 );
   }
 
+
   cv::vconcat( outImg, status, dst );
 
 }
@@ -299,8 +309,18 @@ void MiscUtils::plot_point_pair( const cv::Mat& imA, const MatrixXd& ptsA, int i
 
 
 
+  cv::Mat outImg_;
+  cv::hconcat(imA, imB, outImg_);
+
   cv::Mat outImg;
-  cv::hconcat(imA, imB, outImg);
+  if( outImg_.channels() == 3 )
+      outImg = outImg_;
+  else
+      cv::cvtColor( outImg_, outImg, CV_GRAY2BGR );
+
+
+
+
 
   // loop over all points
   int count = 0;
@@ -351,6 +371,65 @@ void MiscUtils::plot_point_pair( const cv::Mat& imA, const MatrixXd& ptsA, int i
           cv::putText( status, msg_tokens[h].c_str(), cv::Point(10,80+20*h), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255), 1.5 );
   }
 
+
   cv::vconcat( outImg, status, dst );
 
+}
+
+
+
+double MiscUtils::Slope(int x0, int y0, int x1, int y1){
+     return (double)(y1-y0)/(x1-x0);
+}
+
+void MiscUtils::draw_fullLine(cv::Mat& img, cv::Point2f a, cv::Point2f b, cv::Scalar color){
+     double slope = MiscUtils::Slope(a.x, a.y, b.x, b.y);
+
+     cv::Point2f p(0,0), q(img.cols,img.rows);
+
+     p.y = -(a.x - p.x) * slope + a.y;
+     q.y = -(b.x - q.x) * slope + b.y;
+
+     cv::line(img,p,q,color,1,8,0);
+}
+
+// draw line on the image, given a line equation in homogeneous co-ordinates. l = (a,b,c) for ax+by+c = 0
+void MiscUtils::draw_line( const Vector3d l, cv::Mat& im, cv::Scalar color )
+{
+    // C++: void line(Mat& img, Point pt1, Point pt2, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
+    if( l(0) == 0 ) {
+        // plot y = -c/b
+        cv::Point2f a(0.0, -l(2)/l(1) );
+        cv::Point2f a_(10.0, -l(2)/l(1) );
+        MiscUtils::draw_fullLine( im, a, a_, color );
+        return;
+    }
+
+    if( l(1) == 0 ) {
+        // plot x = -c/a
+        cv::Point2f b(-l(2)/l(0), 0.0 );
+        cv::Point2f b_(-l(2)/l(0), 10.0 );
+        MiscUtils::draw_fullLine( im, b, b_, color );
+        return;
+    }
+
+    cv::Point2f a(0.0, -l(2)/l(1) );
+    cv::Point2f b(-l(2)/l(0), 0.0 );
+    // cout << a << "<--->" << b << endl;
+    // cv::line( im, a, b, cv::Scalar(255,255,255) );
+    MiscUtils::draw_fullLine( im, a, b, color );
+}
+
+// mark point on the image, pt is in homogeneous co-ordinate.
+void MiscUtils::draw_point( const Vector3d pt, cv::Mat& im, cv::Scalar color  )
+{
+    // C++: void circle(Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
+    cv::circle( im, cv::Point2f( pt(0)/pt(2), pt(1)/pt(2) ), 2, color, -1   );
+
+}
+
+// mark point on image
+void MiscUtils::draw_point( const Vector2d pt, cv::Mat& im, cv::Scalar color  )
+{
+    cv::circle( im, cv::Point2f( pt(0), pt(1) ), 2, color, -1   );
 }

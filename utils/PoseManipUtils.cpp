@@ -26,7 +26,7 @@ void PoseManipUtils::geometry_msgs_Pose_to_eigenmat( const geometry_msgs::Pose& 
     dstT(2,3) = pose.position.z;
     dstT(3,3) = 1.0;
 }
-#endif 
+#endif
 
 void PoseManipUtils::eigenmat_to_raw( const Matrix4d& T, double * quat, double * t)
 {
@@ -52,6 +52,19 @@ void PoseManipUtils::raw_xyzw_to_eigenmat( const double * quat, const double * t
   dstT(0,3) = t[0];
   dstT(1,3) = t[1];
   dstT(2,3) = t[2];
+  dstT(3,3) = 1.0;
+}
+
+void PoseManipUtils::raw_xyzw_to_eigenmat( const Vector4d& quat, const Vector3d& t, Matrix4d& dstT )
+{
+  Quaterniond q = Quaterniond( quat(3), quat(0), quat(1), quat(2) );
+
+  dstT = Matrix4d::Zero();
+  dstT.topLeftCorner<3,3>() = q.toRotationMatrix();
+
+  dstT(0,3) = t(0);
+  dstT(1,3) = t(1);
+  dstT(2,3) = t(2);
   dstT(3,3) = 1.0;
 }
 
@@ -150,7 +163,7 @@ void PoseManipUtils::prettyprintPoseMatrix( const Matrix4d& M, string& return_st
    ypr = R2ypr(  M.topLeftCorner<3,3>()  );
 
   char __tmp[200];
-  snprintf( __tmp, 200, ":YPR=(%4.2f,%4.2f,%4.2f)  :TxTyTz=(%4.2f,%4.2f,%4.2f)",  ypr(0), ypr(1), ypr(2), M(0,3), M(1,3), M(2,3) );
+  snprintf( __tmp, 200, ":YPR(deg)=(%4.2f,%4.2f,%4.2f)  :TxTyTz=(%4.2f,%4.2f,%4.2f)",  ypr(0), ypr(1), ypr(2), M(0,3), M(1,3), M(2,3) );
   return_string = string( __tmp );
 }
 
@@ -161,7 +174,7 @@ string PoseManipUtils::prettyprintMatrix4d( const Matrix4d& M )
    ypr = R2ypr(  M.topLeftCorner<3,3>()  );
 
   char __tmp[200];
-  snprintf( __tmp, 200, ":YPR=(%4.2f,%4.2f,%4.2f)  :TxTyTz=(%4.2f,%4.2f,%4.2f)",  ypr(0), ypr(1), ypr(2), M(0,3), M(1,3), M(2,3) );
+  snprintf( __tmp, 200, ":YPR(deg)=(%4.2f,%4.2f,%4.2f)  :TxTyTz=(%4.2f,%4.2f,%4.2f)",  ypr(0), ypr(1), ypr(2), M(0,3), M(1,3), M(2,3) );
   string return_string = string( __tmp );
   return return_string;
 }
@@ -172,7 +185,7 @@ string PoseManipUtils::prettyprintMatrix4d_YPR( const Matrix4d& M )
    ypr = R2ypr(  M.topLeftCorner<3,3>()  );
 
   char __tmp[200];
-  snprintf( __tmp, 200, " YPR=(%4.2f,%4.2f,%4.2f) ",  ypr(0), ypr(1), ypr(2) );
+  snprintf( __tmp, 200, " YPR(deg)=(%4.2f,%4.2f,%4.2f) ",  ypr(0), ypr(1), ypr(2) );
   string return_string = string( __tmp );
   return return_string;
 }
@@ -186,4 +199,19 @@ string PoseManipUtils::prettyprintMatrix4d_t( const Matrix4d& M )
   snprintf( __tmp, 200, " TxTyTz=(%4.2f,%4.2f,%4.2f) ",  M(0,3), M(1,3), M(2,3) );
   string return_string = string( __tmp );
   return return_string;
+}
+
+
+void PoseManipUtils::vec_to_cross_matrix( const Vector3d& t, Matrix3d& A_x )
+{
+    // Tx = Matrix3d::Zero();
+    A_x << 0, -t(2) , t(1) ,
+          t(2), 0,  -t(0),
+          -t(1), t(0), 0;
+}
+
+void PoseManipUtils::vec_to_cross_matrix( double a, double b, double c, Matrix3d& A_x )
+{
+    Vector3d t(a,b,c);
+    vec_to_cross_matrix( t, A_x );
 }
