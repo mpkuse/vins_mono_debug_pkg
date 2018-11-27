@@ -554,22 +554,122 @@ int stereo_demo() {
 
 int stereo_demo_easy()
 {
-    // Intrinsics load
+    ElapsedTime timer;
+    const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/";
+    // const std::string BASE = "/Bulk_Data/ros_bags/bluefox_stereo/calib/leveled_cam_sampled/";
+
+    //--------- Intrinsics load
+    camodocal::CameraPtr left_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.0.yaml");
+    camodocal::CameraPtr right_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.1.yaml");
+    // camodocal::CameraPtr left_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string(BASE+"../leveled_cam_pinhole/")+"/camera_left.yaml");
+    // camodocal::CameraPtr right_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string(BASE+"../leveled_cam_pinhole/")+"/camera_right.yaml");
+
+    cout << left_camera->parametersToString() << endl;
+    cout << right_camera->parametersToString() << endl;
 
 
-    // Stereo Base line load
+    //----------- Stereo Base line load (alsoed called extrinsic calibration)
+        // mynt eye
+    Vector4d q_wxyz = Vector4d( -1.8252509868889259e-04,-1.6291774489779708e-03,-1.2462127842978489e-03,9.9999787970731446e-01 );
+    Vector3d tr_xyz = Vector3d( -1.2075905420832895e+02/1000.,5.4110610639412482e-01/1000.,2.4484815673909591e-01/1000. );
+
+        // bluefox stereo leveled
+    // Vector4d q_wxyz = Vector4d( -1.7809713490350254e-03, 4.2143149583451564e-04,4.1936662160154632e-02, 9.9911859501433165e-01 );
+    // Vector3d tr_xyz = Vector3d( -1.4031938291177164e+02/1000.,-6.6214729932530441e+00/1000.,1.4808567571722902e+00/1000. );
+
+    Matrix4d right_T_left;
+    PoseManipUtils::raw_xyzw_to_eigenmat( q_wxyz, tr_xyz, right_T_left );
+    // cout << "right_T_left: " << PoseManipUtils::prettyprintMatrix4d( right_T_left ) << endl;
 
 
-    // init stereogeom
+
+    //-------------------- init stereogeom
+    std::shared_ptr<StereoGeometry> stereogeom;
+    stereogeom = std::make_shared<StereoGeometry>( left_camera,right_camera,     right_T_left  );
+    stereogeom->set_K( 375.0, 375.0, 376.0, 240.0 );
 
 
-    // load images_raw for left and right
+
+    int frame_id = 1005;
+    //----------------- load images_raw for left and right
+    cv::Mat imleft_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+".jpg", 0 );
+    cv::Mat imright_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+"_1.jpg", 0 );
+    // cv::Mat imleft_raw =  cv::imread( BASE+"/cam0_"+std::to_string(frame_id)+".png",0 );
+    // cv::Mat imright_raw = cv::imread( BASE+"/cam1_"+ std::to_string(frame_id)+".png",0 );
 
 
-    // stereogeom->get3dpoints_from_raw_images()
+
+    //------------------- stereogeom->get3dpoints_from_raw_images()
+    //      can use one of the options depending on the need.
+    #if 0
+    // (A) fastest - if you are just looking for valid 3d points - look at the CameraGeometry.h header to see various options to call.
+    timer.tic();
+    MatrixXd _3dpts; //4xN
+    stereogeom->get3dpoints_from_raw_images(imleft_raw, imright_raw, _3dpts );
+    cout << timer.toc_milli() << " (ms)!!  get3dpoints_from_raw_images\n";
+
+    cout << "_3dpts.shape= " << _3dpts.rows() << " " << _3dpts.cols() << endl;
+    #endif
 
 
-    // visualize 3d points with rviz
+    #if 0
+    // will get the 3d points and disparity. Takes about 2-4ms more than (A)
+    MatrixXd _3dpts; //4xN
+    cv::Mat disparity_for_visualization;
+    cout << "_3dpts.shape= " << _3dpts.rows() << " " << _3dpts.cols() << endl;
+    timer.tic();
+    stereogeom->get3dpoints_and_disparity_from_raw_images(imleft_raw, imright_raw, _3dpts, disparity_for_visualization );
+    cout << timer.toc_milli() << " (ms)!!  get3dpoints_and_disparity_from_raw_images\n";
+
+    cv::imshow( "disparity_for_visualization", disparity_for_visualization );
+    #endif
+
+
+    #if 1
+    // will get 3d points, stereo-rectified image, and disparity false colormap
+    MatrixXd _3dpts; //4xN
+    cv::Mat imleft_srectified, imright_srectified;
+    cv::Mat disparity_for_visualization;
+
+    timer.tic();
+    stereogeom->get_srectifiedim_and_3dpoints_and_disparity_from_raw_images(imleft_raw, imright_raw,
+        imleft_srectified, imright_srectified,
+         _3dpts, disparity_for_visualization );
+    cout << timer.toc_milli() << " (ms)!!  get_srectifiedim_and_3dpoints_and_disparity_from_raw_images\n";
+
+    cv::imshow( "imleft_srectified", imleft_srectified );
+    cv::imshow( "imright_srectified", imright_srectified );
+    cv::imshow( "disparity_for_visualization", disparity_for_visualization );
+    #endif
+
+
+    //-------------------- reproject the 3d points.
+    //      note: that these 3d points after reprojections will be correct as plotted to imleft_srectified
+    vector<cv::Scalar> pt_colors;
+    GeometryUtils::depthColors( _3dpts, pt_colors, .5, 4.5 );
+
+
+    MatrixXd perspective_proj = MatrixXd::Zero( 3, _3dpts.cols() ); // perspective project _3dpts.
+    for( int k=0 ; k<_3dpts.cols() ; k++ ) {
+        perspective_proj(0,k) = _3dpts( 0, k ) / _3dpts( 2, k) ;
+        perspective_proj(1,k) = _3dpts( 1, k ) / _3dpts( 2, k) ;
+        perspective_proj(2,k) = 1.0;
+    }
+
+    MatrixXd reproj_uv = stereogeom->get_K() * perspective_proj; //< scaling with camera intrinsic for visualization
+    cout << "_3dpts(sample)\n" << _3dpts.leftCols(10) << endl;
+    cout << "perspective_proj(sample)\n" << perspective_proj.leftCols(10) << endl;
+    cout << "reproj_uv(sample)\n" << reproj_uv.leftCols(10) << endl;
+
+
+    cv::Mat dst_reproj_uv;
+    MiscUtils::plot_point_sets( imleft_srectified, reproj_uv, dst_reproj_uv, pt_colors, 0.6, "plot of reprojected points;colored by depth" );
+    cv::imshow( "dst_reproj_uv", dst_reproj_uv );
+
+
+    //-------------------- visualize 3d points with rviz
+
+    cv::waitKey(0);
 
 }
 
@@ -600,7 +700,8 @@ int monocular_demo()
 
 int main() {
     // monocular_demo();
-    stereo_demo();
+    // stereo_demo();
+    stereo_demo_easy();
 
     /*
     double _x[5];

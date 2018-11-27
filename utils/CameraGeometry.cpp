@@ -635,6 +635,55 @@ void StereoGeometry::get3dpoints_from_raw_images( const cv::Mat& imleft_raw, con
 }
 
 
+void StereoGeometry::get3dpoints_and_disparity_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                            MatrixXd& _3dpts, cv::Mat& disparity_for_visualization    )
+{
+    cv::Mat disp_raw;
+    this->do_stereoblockmatching_of_raw_images( imleft_raw, imright_raw, disp_raw );
+
+
+    cv::Mat _3dImage;
+    this->disparity_to_3DPoints( disp_raw, _3dImage, _3dpts, true, true );
+
+    cv::Mat disparity_for_visualization_gray;
+    cv::normalize(disp_raw, disparity_for_visualization_gray, 0, 255, CV_MINMAX, CV_8U); //< disp8 used just for visualization
+    cv::applyColorMap(disparity_for_visualization_gray, disparity_for_visualization, cv::COLORMAP_HOT);
+
+
+
+    // cout << "notimplemented\n";
+    // exit(11);
+}
+
+
+
+void StereoGeometry::get_srectifiedim_and_3dpoints_and_disparity_from_raw_images(
+                    const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                    cv::Mat& imleft_srectified, cv::Mat& imright_srectified,
+                    MatrixXd& _3dpts, cv::Mat& disparity_for_visualization    )
+{
+    // raw --> srectified
+    this->do_stereo_rectification_of_raw_images( imleft_raw, imright_raw, imleft_srectified,  imright_srectified );
+
+    // block matching
+    cv::Mat disp_raw;
+    this->do_stereoblockmatching_of_srectified_images( imleft_srectified, imright_srectified, disp_raw );
+
+
+    // disparity to 3D points
+    cv::Mat _3dImage;
+    this->disparity_to_3DPoints( disp_raw, _3dImage, _3dpts, true, true );
+
+    cv::Mat disparity_for_visualization_gray;
+    cv::normalize(disp_raw, disparity_for_visualization_gray, 0, 255, CV_MINMAX, CV_8U); //< disp8 used just for visualization
+    cv::applyColorMap(disparity_for_visualization_gray, disparity_for_visualization, cv::COLORMAP_HOT);
+
+
+
+
+}
+
+
 // _3dImage: 3d points as 3 channel image. 1st channel is X, 2nd channel is Y and 3rd channel is Z.
 // Also note that these co-ordinates and imleft_raw co-ordinate do not correspond. They correspond to
 // the srectified images. Incase you want to use the color info with these 3d points, this

@@ -189,6 +189,23 @@ public:
                                 MatrixXd& e_3dImageX, MatrixXd& e_3dImageY, MatrixXd& e_3dImageZ  );
 
 
+
+    // Given raw image pair returns valid 3d points and disparity false color map.
+    // #Input
+    //      imleft_raw, imright_raw : Raw images. As is from the camera.
+    // #Output
+    //      _3dpts : 4xN matrix.
+    //      disparity_for_visualization : false color mapped for visualization only. Don't do any processing with this one.
+    void get3dpoints_and_disparity_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                                MatrixXd& _3dpts, cv::Mat& disparity_for_visualization    );
+
+    // Given raw image pair return a) stereo-rectified image pair b) valid 3d points c) disparity false color map
+    void get_srectifiedim_and_3dpoints_and_disparity_from_raw_images(
+                        const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                        cv::Mat& imleft_srectified, cv::Mat& imright_srectified,
+                        MatrixXd& _3dpts, cv::Mat& disparity_for_visualization    );
+
+
     // Some  semi private getters of internal variables
 public:
     const cv::Mat& get_Q() const { return rm_Q; }
