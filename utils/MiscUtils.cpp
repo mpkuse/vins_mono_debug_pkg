@@ -209,6 +209,49 @@ void MiscUtils::plot_point_sets( cv::Mat& im, const MatrixXd& pts_set, cv::Mat& 
 }
 
 
+void MiscUtils::plot_point_sets( const cv::Mat& im, const MatrixXd& pts_set, cv::Mat& dst,
+                                        vector<cv::Scalar>& color_annotations, float alpha, const string& msg )
+{
+
+      assert( im.rows > 0 && im.cols > 0 && "\n[MiscUtils::plot_point_sets]Image appears to be emoty. cannot plot.\n");
+      assert( pts_set.cols() > 0 && pts_set.cols() == color_annotations.size() && "[MiscUtils::plot_point_sets] len of color vector must be equal to number of pts.\n" );
+      if( im.data == dst.data ) {
+        //   cout << "src and dst are same\n";
+          // src and dst images are same, so dont copy. just ensure it is a 3 channel image.
+          assert( im.channels() == 3 && dst.channels() == 3 && "[MiscUtils::plot_point_sets]src and dst image are same physical image in memory. They need to be 3 channel." );
+      }
+      else {
+        //   dst = cv::Mat( im.rows, im.cols, CV_8UC3 );
+          if( im.channels() == 1 )
+            cv::cvtColor( im, dst, cv::COLOR_GRAY2BGR );
+          else
+            im.copyTo(dst);
+      }
+
+      // cv::putText( dst, to_string(msg.length()), cv::Point(5,5), cv::FONT_HERSHEY_COMPLEX_SMALL, .95, cv::Scalar(0,255,255) );
+      if( msg.length() > 0 ) {
+        vector<std::string> msg_split;
+        msg_split = MiscUtils::split( msg, ';' );
+        for( int q=0 ; q<msg_split.size() ; q++ )
+          cv::putText( dst, msg_split[q], cv::Point(5,20+20*q), cv::FONT_HERSHEY_COMPLEX_SMALL, .95, cv::Scalar(0,255,255) );
+      }
+
+
+      //pts_set is 2xN
+      cv::Point2d pt;
+      for( int i=0 ; i<pts_set.cols() ; i++ )
+      {
+        pt = cv::Point( (int)pts_set(0,i), (int)pts_set(1,i) );
+
+        cv::Scalar _color = color_annotations[i];
+        dst.at< cv::Vec3b >( pt )[0] = (uchar) ( (1.0-alpha)*(float)dst.at< cv::Vec3b >( pt )[0] + (alpha)*(float)_color[0] );
+        dst.at< cv::Vec3b >( pt )[1] = (uchar) ( (1.0-alpha)*(float)dst.at< cv::Vec3b >( pt )[1] + (alpha)*(float)_color[1] );
+        dst.at< cv::Vec3b >( pt )[2] = (uchar) ( (1.0-alpha)*(float)dst.at< cv::Vec3b >( pt )[2] + (alpha)*(float)_color[2] );
+
+        // cv::Vec3d new_color( .5*_orgcolor[0]+.5*_color[0] + .5*_orgcolor[1]+.5*_color[1] + .5*_orgcolor[2]+.5*_color[2] )
+      }
+}
+
 
 
 void MiscUtils::plot_point_pair( const cv::Mat& imA, const MatrixXd& ptsA, int idxA,

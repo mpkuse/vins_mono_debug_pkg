@@ -76,12 +76,13 @@ public:
     const Matrix3d& get_K();
 
     // set extrinsic. THis is thread safe
-    // Everytime a new extrinsic is set, we have to recompute the maps. 
+    // Everytime a new extrinsic is set, we have to recompute the maps.
     void set_stereoextrinsic( Matrix4d __right_T_left );
     void set_stereoextrinsic( Vector4d quat_xyzw, Vector3d tr_xyz );
     const Matrix4d& get_stereoextrinsic();
 
     void fundamentalmatrix_from_stereoextrinsic( Matrix3d& F );
+    //TODO write another function to return fundamental matrix of rectified stereo pair.
 
     // Draw epipolar lines on both views. These images will be overwritten. You need
     // to give me undistorted image-pairs. You can undistory image pair with
@@ -107,6 +108,93 @@ public:
         const cv::Mat imleft_raw, const cv::Mat imright_raw,
         cv::Mat& imleft_srectified, cv::Mat& imright_srectified );
 
+
+    // stereo rectified --> disparity. Uses the stereo-block matching algorithm,
+    // ie. cv::StereoBM
+    // if you use this function, besure to call `do_stereo_rectification_of_undistorted_images`
+    // or `do_stereo_rectification_of_raw_images` on your images before calling this function.
+    // returned disparity is CV_16SC1. Be cautioned.
+    void do_stereoblockmatching_of_srectified_images(
+        const cv::Mat& imleft_srectified, const cv::Mat& imright_srectified,
+        cv::Mat& disparity
+    );
+
+    // raw--> disparity
+    // internally does:
+    //      step-1: raw-->undistorted
+    //      step-2: undistorted--> srectify (stereo rectify)
+    //      step-3: srectify --> disparity
+    void do_stereoblockmatching_of_raw_images(
+        const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+        cv::Mat& disparity
+    );
+
+
+    // undistorted --> disparity
+    //      step-1: undistorted --> srectified
+    //      step-2 : srectified --> disparity
+    void do_stereoblockmatching_of_undistorted_images(
+        const cv::Mat& imleft_undistorted, const cv::Mat& imright_undistorted,
+        cv::Mat& disparity
+    );
+
+    // # Inputs
+    //  disparity_raw : The disparity image
+    //  fill_eigen_matrix : _3dpts will be allocated and filled only if this flag is true. If this flag is false then eigen matrix is not filled in this function.
+    //  make_homogeneous : true will result in Eigen matrix being 4xN else will be 3xN. fill_eigen_matrix need to be true for this to matter.
+    // # Outputs
+    //  out3d : 3 channel image. X,Y,Z --> ch0, ch1, ch2. Will also contain invalid 3d points.
+    //  _3dpts : 4xN matrix containing only valid points. N < disparity_raw.shape[0]*disparity_raw.shape[1].
+    void disparity_to_3DPoints(const cv::Mat& disparity_raw,
+        cv::Mat& out3D, MatrixXd& _3dpts,
+        bool fill_eigen_matrix=true, bool make_homogeneous=true );
+
+
+    // #Input
+    // imleft_raw, imright_raw : Raw images. As is from the camera.
+    // # Output
+    // _3dpts : 4xN
+    //      1. raw --> srectified
+    //      2. srectified --> disparity_raw
+    //      3. disparity_raw --> 3d points
+    void get3dpoints_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                                MatrixXd& _3dpts    );
+
+
+    // #Input
+    // imleft_raw, imright_raw : Raw images. As is from the camera.
+    // # Output
+    // _3dImage: 3d points as 3 channel image. 1st channel is X, 2nd channel is Y and 3rd channel is Z.
+    // Also note that these co-ordinates and imleft_raw co-ordinate do not correspond. They correspond to
+    // the srectified images. Incase you want to use the color info with these 3d points, this
+    // will lead to wrong. You should compute the srectified images for that.
+    //      1. raw --> srectified
+    //      2. srectified --> disparity_raw
+    //      3. disparity_raw --> 3d points
+    void get3dmap_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                                cv::Mat& _3dImage );
+
+
+    // #Input
+    // imleft_raw, imright_raw : Raw images. As is from the camera.
+    // # Output
+    // e_3dImageX, e_3dImageY, e_3dImageZ: cv::split( _3dImage ). same size as imleft_raw.shape.
+    // Also note that these co-ordinates and imleft_raw co-ordinate do not correspond. They correspond to
+    // the srectified images. Incase you want to use the color info with these 3d points, this
+    // will lead to wrong. You should compute the srectified images for that.
+    //      1. raw --> srectified
+    //      2. srectified --> disparity_raw
+    //      3. disparity_raw --> 3d points
+    void get3dmap_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                                MatrixXd& e_3dImageX, MatrixXd& e_3dImageY, MatrixXd& e_3dImageZ  );
+
+
+    // Some  semi private getters of internal variables
+public:
+    const cv::Mat& get_Q() const { return rm_Q; }
+    // TODO: (if need be) also have getters from rm_R1, rm_R2, rm_P1, rm_P2, rm_shift, rm_fundamental_matrix.
+
+    void print_blockmatcher_algo_info();
 
 private:
     camodocal::CameraPtr camera_left, camera_right;
@@ -134,6 +222,10 @@ private:
     cv::Mat map1_x, map1_y, map2_x, map2_y;
 
 
+    // Stereo Block Matching
+    cv::Ptr<cv::StereoBM> bm;
+    cv::Ptr<cv::StereoSGBM> sgbm;
+
 };
 
 class GeometryUtils {
@@ -143,5 +235,11 @@ public:
 
     // For a camera gets a K
     static void getK( camodocal::CameraPtr m_cam, Matrix3d& K );
+
+
+    // given a point cloud as 3xN or 4xN matrix, gets colors for each based on the depth
+    // min==-1 then we will compute the min from data, else will use whatever was supplied
+    // max==-1 then we will compute the max from data, else will use whatever.
+    static void depthColors( const MatrixXd& ptcld, vector<cv::Scalar>& out_colors, double min=-1, double max=-1 );
 
 };

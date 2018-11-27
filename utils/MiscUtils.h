@@ -66,6 +66,10 @@ public:
     static void plot_point_sets( cv::Mat& im, const MatrixXd& pts_set,
                                             const cv::Scalar& color, const VectorXi& annotations, const string& msg );
 
+    // plot point with colors specified at every point. pts_set : 3xN or 2xN, len(color_annotations) == pts_set.cols()
+    static void plot_point_sets( const cv::Mat& im, const MatrixXd& pts_set, cv::Mat& dst,
+                                            vector<cv::Scalar>& color_annotations, float alpha=0.8, const string& msg=string("N/A") );
+
     // END--------------------- Plot Keypoints on Image ----------------------------//
 
 

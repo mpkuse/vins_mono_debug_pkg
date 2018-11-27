@@ -41,7 +41,7 @@ public:
       {
         // file << a.format(CSVFormat) << endl;
         file << a << endl;
-        __RawFileIO__write_image_debug_dm(std::cout << "\033[1;32m" <<"write_EigenMatrix: "<< filename  << "\033[0m\n";)
+        __RawFileIO__write_image_debug_dm(std::cout << "\033[1;32m" <<"write_EigenMatrix: "<< filename  << "    size=" << a.rows() << "x" << a.cols() << "\033[0m\n";)
       }
       else
       {

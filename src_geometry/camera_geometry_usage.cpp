@@ -1,4 +1,9 @@
 // Sample usage for class CameraGeometry.h/MonoGeometry and CameraGeometry.h/StereoGeometry
+// These classes abstractout the Stereo Geometry, Undistort etc. They can be used
+// with any of the Camodocal cameras ie. Mei, Kannala-brandt, pinhole (ofcourse).
+//  The whole idea of the abstract Camera clases and Geometry class is to make the
+//  codebase truely object oriented and the core geometry abstracted. Hopefully
+//  all this will help to develop more higher level applications faster.
 #include <iostream>
 #include <string>
 
@@ -18,6 +23,7 @@
 #include "../utils/PoseManipUtils.h"
 #include "../utils/TermColor.h"
 #include "../utils/CameraGeometry.h"
+#include "../utils/RawFileIO.h"
 
 #include "gms_matcher.h"
 
@@ -92,7 +98,10 @@ void point_feature_matches( const cv::Mat& imleft_undistorted, const cv::Mat& im
 
 
 
-// template<int PoseBlockSize>
+// Orthonormalization is needed because the optimization variable translation is unit normalized
+// and to preserve this property we need to define the '+' operation for it. Note that it can
+// only more in tangent space of the sphere. So graph schmit-orthonormalization gives out a basis
+// vector at this point. Ofcourse this is not a unique solution. See Fig. 3 in yonggen's iros2016 paper.
 class UnitVectorParameterization : public ceres::LocalParameterization {
 public:
     UnitVectorParameterization() {}
@@ -133,14 +142,16 @@ public:
 
 
         // jacobian = [ concate above 2 ]
-        jacobian[0] = m[0]; jacobian[3] = n[0];
-        jacobian[1] = m[1]; jacobian[4] = n[1];
-        jacobian[2] = m[2]; jacobian[5] = n[2];
+        jacobian[0] = m[0]; jacobian[1] = n[0];
+        jacobian[2] = m[1]; jacobian[3] = n[1];
+        jacobian[4] = m[2]; jacobian[5] = n[2];
         return true;
 
     }
     virtual int GlobalSize() const { return 3; } // TODO : Generalize.
     virtual int LocalSize() const { return 2; }
+
+
 
     // This function return 2 vectors m, n each of dimension equal to x (ie. 3) such that x,m,n are orthogonal to each other.
     const bool gram_schmidt_orthonormalization( const double * _x , double * _m, double * _n, int len=3 ) const
@@ -148,15 +159,15 @@ public:
         VectorXd xp = VectorXd::Zero( len );
         for( int i=0 ; i<len; i++ ) xp(i) = _x[i];
 
-        xp = xp / xp.norm();
+        // xp = xp / xp.norm();
 
         // equation of tangent-plane : x_p * x  + y_p * y + z_p * z  = 1,
         // where (xp,yp,zp) is a known point on the sphere,. point passing through (x_p,y_p,z_p) and
         // plane normal vector direction as (x_p, y_p, z_p).
 
         // assert( abs(xp.norm()-1.) < 1e-7 );
-        if( abs(xp(2)) < 1E-5 )
-            return false;
+        // if( abs(xp(2)) < 1E-5 )
+            // return false;
 
         VectorXd m = VectorXd::Zero(len); //< a point on tangent plane.
         m << 10., -7, 1.0 -( xp(0)*10. + xp(1)*(-7.) )/xp(2); //< assuming xp(2) is non-zero, TODO ideally should divide by the maximum of {xp(0), xp(1), xp(2) }, the points will change accordingly
@@ -304,11 +315,12 @@ void nudge_extrinsics( const cv::Mat& imleft_undistorted, const cv::Mat& imright
     // 3.2 : Error Terms
     ceres::Problem problem;
     cout << "CERES #residues : " << f.cols() << endl;
-    for( int i=0 ; i<250 /*f.cols()*/ ; i++ )
+    for( int i=0 ; i<f.cols() ; i++ )
     {
         int r = rand() % f.cols();
         CostFunction* cost_function = YonggenResidue::Create( f.col(r).head(3), fd.col(r).head(3) );
-        problem.AddResidualBlock( cost_function, NULL, T_cap_q, T_cap_t );
+        // problem.AddResidualBlock( cost_function, NULL, T_cap_q, T_cap_t );
+        problem.AddResidualBlock( cost_function, new ceres::HuberLoss(0.001), T_cap_q, T_cap_t );
     }
 
 
@@ -322,7 +334,7 @@ void nudge_extrinsics( const cv::Mat& imleft_undistorted, const cv::Mat& imright
     //
     // Step-4 : Solve
     Solver::Options options;
-    options.minimizer_progress_to_stdout = true;
+    options.minimizer_progress_to_stdout = false;
     // options.minimizer_type = ceres::LINE_SEARCH;
     // options.line_search_direction_type = ceres::NONLINEAR_CONJUGATE_GRADIENT;
     Solver::Summary summary;
@@ -336,11 +348,11 @@ void nudge_extrinsics( const cv::Mat& imleft_undistorted, const cv::Mat& imright
     Matrix4d T_cap;
     PoseManipUtils::raw_to_eigenmat( T_cap_q, T_cap_t, T_cap );
     cout << "CERES Solution : " << PoseManipUtils::prettyprintMatrix4d( T_cap ) << endl;
-    cout << "CERES Solution T_cap_t: " << T_cap_t[0] << " " << T_cap_t[1] << " " << T_cap_t[2] << endl;
-    T_cap_t[0] *= n_norm;
-    T_cap_t[1] *= n_norm;
-    T_cap_t[2] *= n_norm;
+    // cout << "CERES Solution T_cap_t: " << T_cap_t[0] << " " << T_cap_t[1] << " " << T_cap_t[2] << endl;
+    T_cap.col(3).topRows(3) *= n_norm;
+
     optimized_right_T_left = T_cap;
+    cout << "CERES Solution T_cap(after rescaling): " << PoseManipUtils::prettyprintMatrix4d( T_cap ) << endl;
 
 
 
@@ -351,15 +363,15 @@ int stereo_demo() {
     IOFormat numpyFmt(FullPrecision, 0, ", ", ",\n", "[", "]", "[", "]");
     ElapsedTime timer;
 
-    // const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/";
-    const std::string BASE = "/Bulk_Data/ros_bags/bluefox_stereo/calib/leveled_cam_sampled/";
+    const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/";
+    // const std::string BASE = "/Bulk_Data/ros_bags/bluefox_stereo/calib/leveled_cam_sampled/";
 
 
     // Abstract Camera
-    // camodocal::CameraPtr left_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.0.yaml");
-    // camodocal::CameraPtr right_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.1.yaml");
-    camodocal::CameraPtr left_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string(BASE+"../leveled_cam_pinhole/")+"/camera_left.yaml");
-    camodocal::CameraPtr right_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string(BASE+"../leveled_cam_pinhole/")+"/camera_right.yaml");
+    camodocal::CameraPtr left_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.0.yaml");
+    camodocal::CameraPtr right_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.1.yaml");
+    // camodocal::CameraPtr left_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string(BASE+"../leveled_cam_pinhole/")+"/camera_left.yaml");
+    // camodocal::CameraPtr right_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(string(BASE+"../leveled_cam_pinhole/")+"/camera_right.yaml");
 
     cout << left_camera->parametersToString() << endl;
     cout << right_camera->parametersToString() << endl;
@@ -367,15 +379,24 @@ int stereo_demo() {
 
     // Extrinsics - quat is wxyz . translation in meters.
         // mynt eye
-    // Vector4d q_wxyz = Vector4d( -1.8252509868889259e-04,-1.6291774489779708e-03,-1.2462127842978489e-03,9.9999787970731446e-01 );
-    // Vector3d tr_xyz = Vector3d( -1.2075905420832895e+02/1000.,5.4110610639412482e-01/1000.,2.4484815673909591e-01/1000. );
+    Vector4d q_wxyz = Vector4d( -1.8252509868889259e-04,-1.6291774489779708e-03,-1.2462127842978489e-03,9.9999787970731446e-01 );
+    Vector3d tr_xyz = Vector3d( -1.2075905420832895e+02/1000.,5.4110610639412482e-01/1000.,2.4484815673909591e-01/1000. );
 
         // bluefox stereo leveled
-    Vector4d q_wxyz = Vector4d( -1.7809713490350254e-03, 4.2143149583451564e-04,4.1936662160154632e-02, 9.9911859501433165e-01 );
-    Vector3d tr_xyz = Vector3d( -1.4031938291177164e+02/1000.,-6.6214729932530441e+00/1000.,1.4808567571722902e+00/1000. );
+    // Vector4d q_wxyz = Vector4d( -1.7809713490350254e-03, 4.2143149583451564e-04,4.1936662160154632e-02, 9.9911859501433165e-01 );
+    // Vector3d tr_xyz = Vector3d( -1.4031938291177164e+02/1000.,-6.6214729932530441e+00/1000.,1.4808567571722902e+00/1000. );
 
     Matrix4d right_T_left;
     PoseManipUtils::raw_xyzw_to_eigenmat( q_wxyz, tr_xyz, right_T_left );
+
+    #if 0
+    cout << "right_T_left(before applying delta): " << PoseManipUtils::prettyprintMatrix4d( right_T_left ) << endl;
+    Matrix4d delta;
+    PoseManipUtils::rawyprt_to_eigenmat( Vector3d(4.0,4.0,4.0), Vector3d(0,0,0), delta );
+    right_T_left = delta * right_T_left;
+    cout << "right_T_left(after applying delta): " << PoseManipUtils::prettyprintMatrix4d( right_T_left ) << endl;
+    #endif
+
     cout << "right_T_left: " << PoseManipUtils::prettyprintMatrix4d( right_T_left ) << endl;
     cout << "right_T_left=" << right_T_left.format( numpyFmt );
 
@@ -386,12 +407,13 @@ int stereo_demo() {
     stereogeom->set_K( 375.0, 375.0, 376.0, 240.0 );
 
     // Raw Image - Image from camera
-    int frame_id = 15;
-    for( int frame_id=0 ; frame_id < 100 ; frame_id++ ) {
-    // cv::Mat imleft_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+".jpg", 0 );
-    // cv::Mat imright_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+"_1.jpg", 0 );
-    cv::Mat imleft_raw =  cv::imread( BASE+"/cam0_"+std::to_string(frame_id)+".png",0 );
-    cv::Mat imright_raw = cv::imread( BASE+"/cam1_"+ std::to_string(frame_id)+".png",0 );
+    int frame_id = 1005;
+    // for( int frame_id=100 ; frame_id < 1000 ; frame_id++ )
+    {
+    cv::Mat imleft_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+".jpg", 0 );
+    cv::Mat imright_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+"_1.jpg", 0 );
+    // cv::Mat imleft_raw =  cv::imread( BASE+"/cam0_"+std::to_string(frame_id)+".png",0 );
+    // cv::Mat imright_raw = cv::imread( BASE+"/cam1_"+ std::to_string(frame_id)+".png",0 );
 
 
     // Undistort Only
@@ -404,11 +426,13 @@ int stereo_demo() {
     cv::imshow( "imleft_undistorted", imleft_undistorted );
     cv::imshow( "imright_undistorted", imright_undistorted );
 
-
-    // Matrix4d optimized_right_T_left;
-    // nudge_extrinsics(imleft_undistorted, imright_undistorted, stereogeom->get_K(), right_T_left, optimized_right_T_left);
-    // cout << "optimized_right_T_left: " << PoseManipUtils::prettyprintMatrix4d( optimized_right_T_left) << endl;
-    // stereogeom->set_stereoextrinsic( optimized_right_T_left );
+    // #define YONGGEN_MARKERLESS_ONLINE_STEREOCALIB
+    #ifdef YONGGEN_MARKERLESS_ONLINE_STEREOCALIB
+    Matrix4d optimized_right_T_left;
+    nudge_extrinsics(imleft_undistorted, imright_undistorted, stereogeom->get_K(), right_T_left, optimized_right_T_left);
+    cout << "optimized_right_T_left: " << PoseManipUtils::prettyprintMatrix4d( optimized_right_T_left) << endl;
+    stereogeom->set_stereoextrinsic( optimized_right_T_left );
+    #endif
 
 
 
@@ -443,24 +467,109 @@ int stereo_demo() {
 
 
 
-
-    // SGBM - TODO consider moving this to StereoGeometry class.
-    // auto sgbm = cv::StereoSGBM::create(0,16,3);
-    // auto sgbm = cv::StereoSGBM::create(0,16,3);
-    auto sgbm = cv::StereoBM::create();
+    // Stereo Block Matching to compute disparity
     cv::Mat disp_raw, disp8;
     timer.tic();
-    sgbm->compute( imleft_srectified, imright_srectified, disp_raw ); //< this needs 1 channel images as input
-    cout << timer.toc_milli() << " :(ms) sgbm->compute\n";
-    cv::normalize(disp_raw, disp8, 0, 255, CV_MINMAX, CV_8U);
+    stereogeom->do_stereoblockmatching_of_srectified_images( imleft_srectified, imright_srectified, disp_raw );
+    // stereogeom->do_stereoblockmatching_of_raw_images( imleft_raw, imright_raw, disp_raw );
+    cout << timer.toc_milli() << " : (ms)do_stereoblockmatching_of_srectified_images done in\n";
+    cout << "disp_raw info " << MiscUtils::cvmat_info( disp_raw ) << endl;
+    stereogeom->print_blockmatcher_algo_info();
+    cv::normalize(disp_raw, disp8, 0, 255, CV_MINMAX, CV_8U); //< disp8 used just for visualization
     cv::imshow( "disp8", disp8 );
 
 
+    #if 0
+    {
+        cv::FileStorage file("disp_raw.opencv.txt", cv::FileStorage::WRITE);
+        file << "disp_raw" << disp_raw;
+        file.release();
+
+
+        // save disp_raw
+        MatrixXd e_disp_raw;
+        cv::cv2eigen(disp_raw, e_disp_raw );
+        RawFileIO::write_EigenMatrix(  "./disp_raw.txt", e_disp_raw );
+
+    }
+    #endif
+
+
+    // Disparity to pointcloud
+    const cv::Mat Q = stereogeom->get_Q();
+    cv::Mat _3dImage;
+    MatrixXd _3dpts;
+    timer.tic();
+    stereogeom->disparity_to_3DPoints( disp_raw, _3dImage, _3dpts, true, true );
+    cout << timer.toc_milli() << " : (ms) disparity_to_3DPoints computed in \n";
+
+    #if 0
+    // split channels
+    cout << "_3dImage : " << MiscUtils::cvmat_info( _3dImage ) << endl;
+    Mat _3dImage_XYZ[3];   //destination array
+    cv::split(_3dImage,_3dImage_XYZ);//split source
+    cout << "_3dImageX : " << MiscUtils::cvmat_info( _3dImage_XYZ[0] ) << endl;
+    cout << "_3dImageY : " << MiscUtils::cvmat_info( _3dImage_XYZ[1] ) << endl;
+    cout << "_3dImageZ : " << MiscUtils::cvmat_info( _3dImage_XYZ[2] ) << endl;
+
+    MatrixXf e_3dImage[3];
+    cv::cv2eigen( _3dImage_XYZ[0], e_3dImage[0] );
+    cv::cv2eigen( _3dImage_XYZ[1], e_3dImage[1] );
+    cv::cv2eigen( _3dImage_XYZ[2], e_3dImage[2] );
+    RawFileIO::write_EigenMatrix(  "./e_3dImageX.txt", e_3dImage[0] );
+    RawFileIO::write_EigenMatrix(  "./e_3dImageY.txt", e_3dImage[1] );
+    RawFileIO::write_EigenMatrix(  "./e_3dImageZ.txt", e_3dImage[2] );
+    RawFileIO::write_EigenMatrix(  "./_3dpts.txt", _3dpts );
+    #endif
+
+
+
     // Visualize 3d point cloud from stereo
+    // a) as reprojections
+    vector<cv::Scalar> pt_colors;
+    GeometryUtils::depthColors( _3dpts, pt_colors, .5, 4.5 );
+
+
+    MatrixXd perspective_proj = MatrixXd::Zero( 3, _3dpts.cols() );
+    for( int k=0 ; k<_3dpts.cols() ; k++ ) {
+        perspective_proj(0,k) = _3dpts( 0, k ) / _3dpts( 2, k) ;
+        perspective_proj(1,k) = _3dpts( 1, k ) / _3dpts( 2, k) ;
+        perspective_proj(2,k) = 1.0;
+    }
+
+    MatrixXd reproj_uv = stereogeom->get_K() * perspective_proj;
+    #if 0
+    cout << "_3dpts(sample)\n" << _3dpts.leftCols(10) << endl;
+    cout << "perspective_proj(sample)\n" << perspective_proj.leftCols(10) << endl;
+    cout << "reproj_uv(sample)\n" << reproj_uv.leftCols(10) << endl;
+    #endif
+
+    cv::Mat dst_reproj_uv;
+    MiscUtils::plot_point_sets( imleft_srectified, reproj_uv, dst_reproj_uv, pt_colors, 0.6, "colored by depth" );
+    cv::imshow( "dst_reproj_uv", dst_reproj_uv );
     cv::waitKey(0);
     }
 
+}
 
+int stereo_demo_easy()
+{
+    // Intrinsics load
+
+
+    // Stereo Base line load
+
+
+    // init stereogeom
+
+
+    // load images_raw for left and right
+
+
+    // stereogeom->get3dpoints_from_raw_images()
+
+
+    // visualize 3d points with rviz
 
 }
 

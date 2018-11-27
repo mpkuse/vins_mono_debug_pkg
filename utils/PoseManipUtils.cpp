@@ -93,6 +93,16 @@ void PoseManipUtils::rawyprt_to_eigenmat( const double * ypr, const double * t, 
   dstT(2,3) = t[2];
 }
 
+// input ypr must be in degrees.
+void PoseManipUtils::rawyprt_to_eigenmat( const Vector3d& eigen_ypr_degrees, const Vector3d& t, Matrix4d& dstT )
+{
+  dstT = Matrix4d::Identity();
+  dstT.topLeftCorner<3,3>() = ypr2R( eigen_ypr_degrees );
+  dstT(0,3) = t(0);
+  dstT(1,3) = t(1);
+  dstT(2,3) = t(2);
+}
+
 void PoseManipUtils::eigenmat_to_rawyprt( const Matrix4d& T, double * ypr, double * t)
 {
   assert( T(3,3) == 1 );
