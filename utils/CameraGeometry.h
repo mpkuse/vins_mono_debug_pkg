@@ -161,6 +161,26 @@ public:
                                 MatrixXd& _3dpts    );
 
 
+
+
+    // #Input
+    // imleft_raw, imright_raw : Raw images. As is from the camera.
+    // # Output
+    // _3dpts : 4xN
+    //      1. raw --> srectified
+    //      2. srectified --> disparity_raw
+    //      3. disparity_raw --> 3d points
+    // _3dImage: 3d points as 3 channel image. 1st channel is X, 2nd channel is Y and 3rd channel is Z.
+    void get3dpoints_and_3dmap_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                                MatrixXd& _3dpts, cv::Mat& _3dImage    );
+
+
+    // returns both 3dpoints and 3dimage along with srectified image pair
+    void get3dpoints_and_3dmap_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                                MatrixXd& _3dpts, cv::Mat& _3dImage,
+                            cv::Mat& imleft_srectified, cv::Mat& imright_srectified     );
+
+
     // #Input
     // imleft_raw, imright_raw : Raw images. As is from the camera.
     // # Output
@@ -253,10 +273,23 @@ public:
     // For a camera gets a K
     static void getK( camodocal::CameraPtr m_cam, Matrix3d& K );
 
+    // Ideal Projection:
+    // a) c_X = c_X / c_X.row(2). ==> Z divide
+    // b) perspective_proj = c_X.topRows(3)
+    // c) uv = K * c_X
+    // # Input
+    // K : Camera params. K_new
+    // c_X : 3D points expressed in frame of the camera.
+    //          Note that if you have world 3d points you will need to transform
+    //          it to camera co-ordinates before you pass it to this function.
+    // uv : image co-ordinates (xy)
+    static void idealProjection( const Matrix3d& K, const MatrixXd& c_X, MatrixXd& uv  );
+
 
     // given a point cloud as 3xN or 4xN matrix, gets colors for each based on the depth
     // min==-1 then we will compute the min from data, else will use whatever was supplied
     // max==-1 then we will compute the max from data, else will use whatever.
     static void depthColors( const MatrixXd& ptcld, vector<cv::Scalar>& out_colors, double min=-1, double max=-1 );
+    static void depthColors( const MatrixXd& ptcld, MatrixXd& out_colors, double min=-1, double max=-1 ); // out_colors : 3xN rgb \in [0,1]
 
 };

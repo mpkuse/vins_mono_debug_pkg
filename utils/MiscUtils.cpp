@@ -239,9 +239,15 @@ void MiscUtils::plot_point_sets( const cv::Mat& im, const MatrixXd& pts_set, cv:
 
       //pts_set is 2xN
       cv::Point2d pt;
+      int n_outside_image_domain = 0;
       for( int i=0 ; i<pts_set.cols() ; i++ )
       {
+          if(  pts_set(0,i) < 0 || pts_set(0,i) > im.cols  ||  pts_set(1,i) < 0 || pts_set(1,i) > im.rows   ) { // avoid points which are outside
+              n_outside_image_domain++;
+              continue;
+        }
         pt = cv::Point( (int)pts_set(0,i), (int)pts_set(1,i) );
+
 
         cv::Scalar _color = color_annotations[i];
         dst.at< cv::Vec3b >( pt )[0] = (uchar) ( (1.0-alpha)*(float)dst.at< cv::Vec3b >( pt )[0] + (alpha)*(float)_color[0] );
@@ -250,6 +256,9 @@ void MiscUtils::plot_point_sets( const cv::Mat& im, const MatrixXd& pts_set, cv:
 
         // cv::Vec3d new_color( .5*_orgcolor[0]+.5*_color[0] + .5*_orgcolor[1]+.5*_color[1] + .5*_orgcolor[2]+.5*_color[2] )
       }
+
+      if( float(n_outside_image_domain)/ float(pts_set.cols() ) > 0.2 ) // print only if u see too many outside the image
+          cout << "[MiscUtils::plot_point_sets] with color at every point, found " << n_outside_image_domain << " outside the image of total points to plot=" << pts_set.cols() << "\n";
 }
 
 

@@ -260,6 +260,14 @@ add_executable( camera_geometry_usage
             ${KuseUtilSources}
         )
 
+
+add_executable( camera_geometry_inspect_ptcld
+            src_geometry/camera_geometry_inspect_ptcld.cpp
+            ${CamodocalCameraModelSources}
+            ${KuseUtilSources}
+        )
+
+
 target_link_libraries( samplepublish
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -308,4 +316,12 @@ target_link_libraries( camera_geometry_usage
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
   ${CERES_LIBRARIES}
+)
+
+target_link_libraries( camera_geometry_inspect_ptcld
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${CERES_LIBRARIES}
+  ${THEIA_LIBRARIES}
+
 )

@@ -619,6 +619,7 @@ void StereoGeometry::disparity_to_3DPoints(const cv::Mat& disparity_raw,
 //      1. raw --> srectified
 //      2. srectified --> disparity_raw
 //      3. disparity_raw --> 3d points
+// return only 3d points
 void StereoGeometry::get3dpoints_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
                             MatrixXd& _3dpts    )
 {
@@ -632,6 +633,38 @@ void StereoGeometry::get3dpoints_from_raw_images( const cv::Mat& imleft_raw, con
 
     // cout << "notimplemented\n";
     // exit(11);
+}
+
+
+// returns both 3dpoints and 3dimage
+void StereoGeometry::get3dpoints_and_3dmap_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                            MatrixXd& _3dpts, cv::Mat& _3dImage     )
+{
+    cv::Mat disp_raw;
+    this->do_stereoblockmatching_of_raw_images( imleft_raw, imright_raw, disp_raw );
+
+
+    const cv::Mat Q = this->get_Q();
+    this->disparity_to_3DPoints( disp_raw, _3dImage, _3dpts, true, true );
+
+}
+
+// returns both 3dpoints and 3dimage along with srectified image pair
+void StereoGeometry::get3dpoints_and_3dmap_from_raw_images( const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                            MatrixXd& _3dpts, cv::Mat& _3dImage,
+                        cv::Mat& imleft_srectified, cv::Mat& imright_srectified     )
+{
+    // raw --> srectified
+    this->do_stereo_rectification_of_raw_images(  imleft_raw, imright_raw, imleft_srectified, imright_srectified );
+
+    // srectified --> disp
+    cv::Mat disp_raw;
+    this->do_stereoblockmatching_of_srectified_images( imleft_srectified, imright_srectified, disp_raw );
+
+
+    const cv::Mat Q = this->get_Q();
+    this->disparity_to_3DPoints( disp_raw, _3dImage, _3dpts, true, true );
+
 }
 
 
@@ -819,4 +852,60 @@ void GeometryUtils::depthColors( const MatrixXd& ptcld, vector<cv::Scalar>& out_
 
     // cout << "min = " << min << "   max=" << max << "    mean=" << mean << endl;
 
+}
+
+
+// given a point cloud as 3xN or 4xN matrix, gets colors for each based on the depth.
+// return in out_colors as 3xN
+void GeometryUtils::depthColors( const MatrixXd& ptcld, MatrixXd& out_colors, double min, double max )
+{
+    assert( ( ptcld.rows() == 3 || ptcld.rows() == 4 ) && "ptcld need to be either a 3xN or a 4xN matrix" );
+    assert( ptcld.cols() > 0 );
+
+    cv::Mat colormap_gray = cv::Mat::zeros( 1, 256, CV_8UC1 );
+    for( int i=0 ; i<256; i++ ) colormap_gray.at<uchar>(0,i) = i;
+    cv::Mat colormap_color;
+    cv::applyColorMap(colormap_gray, colormap_color, cv::COLORMAP_HOT);
+
+    if( min < 0 )
+        min = ptcld.row(2).minCoeff();
+    if( max < 0 )
+        max = ptcld.row(2).maxCoeff();
+    double mean = ptcld.row(2).mean();
+    assert( max > min );
+
+    out_colors = MatrixXd( 3,ptcld.cols() );
+    for( int k=0 ; k<ptcld.cols() ; k++ ) {
+        int ixx = 256.* ( ptcld(2, k ) - min ) / (max - min);
+
+        if( ixx <= 0 ) ixx = 0;
+        if( ixx > 255 ) ixx = 255;
+
+        cv::Vec3b f = colormap_color.at<cv::Vec3b>(0,  (int)ixx );
+
+        // out_colors.push_back( cv::Scalar(f[0], f[1], f[2]) );
+        out_colors( 0, k ) = float(f[2]) / 255.;
+        out_colors( 1, k ) = float(f[1]) / 255.;
+        out_colors( 2, k ) = float(f[0]) / 255.;
+    }
+
+    // cout << "min = " << min << "   max=" << max << "    mean=" << mean << endl;
+
+}
+
+
+void GeometryUtils::idealProjection( const Matrix3d& K, const MatrixXd& c_X, MatrixXd& uv  )
+{
+    assert( c_X.rows() == 4 && "c_X need to be expressed in homogeneous co-ordinates\n" );
+    assert( c_X.cols() > 0 );
+
+    // a) c_X = c_X / c_X.row(2). ==> Z divide
+    // b) perspective_proj = c_X.topRows(3)
+    MatrixXd uv_normalized = MatrixXd::Constant( 3, c_X.cols(), 1.0 );
+    uv_normalized.row(0) = c_X.row(0).array() / c_X.row(2).array();
+    uv_normalized.row(1) = c_X.row(1).array() / c_X.row(2).array();
+
+
+    // c) uv = K * c_X
+    uv = K * uv_normalized;
 }

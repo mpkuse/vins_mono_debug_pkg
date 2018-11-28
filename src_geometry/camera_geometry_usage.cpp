@@ -4,6 +4,15 @@
 //  The whole idea of the abstract Camera clases and Geometry class is to make the
 //  codebase truely object oriented and the core geometry abstracted. Hopefully
 //  all this will help to develop more higher level applications faster.
+
+// YONGYEN'S METHOD TO CORRECT THE STEREO-EXTRINSIC WHOLLY CONTAINED IN THIS FILE
+// implements Yonggen Ling's method
+// Y. Ling and S. Shen, "High-precision online markerless stereo extrinsic calibration," 2016 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Daejeon, 2016, pp. 1771-1778.
+
+// minimize_{R,t} \sum_i || (f'_i)^T E f_i || , where R,t == right_T_left.
+//           a) E is the Essential matrix E := [t]_x R
+//           b) f and f' are point feature matches (f from left f from right) in normalized image co-ordinates
+
 #include <iostream>
 #include <string>
 
@@ -592,12 +601,16 @@ int stereo_demo_easy()
 
     int frame_id = 1005;
     //----------------- load images_raw for left and right
+    // for( frame_id=0; frame_id < 2500 ;  frame_id++ )
+    //{
+    cout << "READ IMAGE " << frame_id << endl;
     cv::Mat imleft_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+".jpg", 0 );
     cv::Mat imright_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+"_1.jpg", 0 );
     // cv::Mat imleft_raw =  cv::imread( BASE+"/cam0_"+std::to_string(frame_id)+".png",0 );
     // cv::Mat imright_raw = cv::imread( BASE+"/cam1_"+ std::to_string(frame_id)+".png",0 );
 
-
+    // if( imleft_raw.empty() || imright_raw.empty() )
+        // continue;
 
     //------------------- stereogeom->get3dpoints_from_raw_images()
     //      can use one of the options depending on the need.
@@ -645,6 +658,7 @@ int stereo_demo_easy()
 
     //-------------------- reproject the 3d points.
     //      note: that these 3d points after reprojections will be correct as plotted to imleft_srectified
+    #if 0
     vector<cv::Scalar> pt_colors;
     GeometryUtils::depthColors( _3dpts, pt_colors, .5, 4.5 );
 
@@ -665,11 +679,14 @@ int stereo_demo_easy()
     cv::Mat dst_reproj_uv;
     MiscUtils::plot_point_sets( imleft_srectified, reproj_uv, dst_reproj_uv, pt_colors, 0.6, "plot of reprojected points;colored by depth" );
     cv::imshow( "dst_reproj_uv", dst_reproj_uv );
-
+    #endif
 
     //-------------------- visualize 3d points with rviz
 
     cv::waitKey(0);
+    //}
+
+
 
 }
 
