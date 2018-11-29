@@ -268,6 +268,13 @@ add_executable( camera_geometry_inspect_ptcld
         )
 
 
+add_executable( camera_geometry_relativepose_at_loopdetections
+            src_geometry/camera_geometry_relativepose_at_loopdetections.cpp
+            ${CamodocalCameraModelSources}
+            ${KuseUtilSources}
+        )
+
+
 target_link_libraries( samplepublish
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -319,6 +326,14 @@ target_link_libraries( camera_geometry_usage
 )
 
 target_link_libraries( camera_geometry_inspect_ptcld
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${CERES_LIBRARIES}
+  ${THEIA_LIBRARIES}
+
+)
+
+target_link_libraries( camera_geometry_relativepose_at_loopdetections
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
   ${CERES_LIBRARIES}

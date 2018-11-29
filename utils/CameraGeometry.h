@@ -224,6 +224,10 @@ public:
                         const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
                         cv::Mat& imleft_srectified, cv::Mat& imright_srectified,
                         MatrixXd& _3dpts, cv::Mat& disparity_for_visualization    );
+    void get_srectifiedim_and_3dpoints_and_3dmap_and_disparity_from_raw_images(
+                        const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                        cv::Mat& imleft_srectified, cv::Mat& imright_srectified,
+                        MatrixXd& _3dpts, cv::Mat& _3dImage, cv::Mat& disparity_for_visualization    );
 
 
     // Some  semi private getters of internal variables

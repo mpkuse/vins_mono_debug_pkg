@@ -386,14 +386,6 @@ void relative_pose_compute_with_theia( int frame_a, int frame_b, Matrix4d& out_b
 
     //--- pose analysis
 
-    // vio poses
-    Matrix4d w_T_a, w_T_b;
-    RawFileIO::read_eigen_matrix( BASE+"/"+to_string(frame_a)+".wTc", w_T_a );
-    RawFileIO::read_eigen_matrix( BASE+"/"+to_string(frame_b)+".wTc", w_T_b );
-    cout << "w_T_a: " << PoseManipUtils::prettyprintMatrix4d( w_T_a ) << endl;
-    cout << "w_T_b: " << PoseManipUtils::prettyprintMatrix4d( w_T_b ) << endl;
-    cout << "w_Tcap_b: " << PoseManipUtils::prettyprintMatrix4d( w_T_a * b_T_a.inverse() ) << endl;
-
 
     GeometryUtils::idealProjection( stereogeom->get_K(), _3dpts, reproj_uv );
     GeometryUtils::depthColors( _3dpts, pt_colors_cv_scalar, .5, 4.5 );
@@ -425,8 +417,8 @@ int main()
     // stereo_demo_easy();
 
     Matrix4d b_T_a;
-    int frame_a = 711;
-    int frame_b = 1194;
+    int frame_a = 840;
+    int frame_b = 1344;
     relative_pose_compute_with_theia( frame_a, frame_b, b_T_a );
 
 
@@ -451,19 +443,19 @@ int main()
 
     ///////////// Cam pose
     visualization_msgs::Marker cam_a, cam_b, cam_b_new;
-    RosMarkerUtils::init_camera_marker( cam_a, 1.0 );
+    RosMarkerUtils::init_camera_marker( cam_a, 3.0 );
     cam_a.ns = "camera";
     cam_a.id = 0;
     RosMarkerUtils::setpose_to_marker( w_T_a, cam_a );
     RosMarkerUtils::setcolor_to_marker( 1.0, 0.0, 0.0, cam_a );
 
-    RosMarkerUtils::init_camera_marker( cam_b, 1.0 );
+    RosMarkerUtils::init_camera_marker( cam_b, 3.0 );
     cam_b.ns = "camera";
     cam_b.id = 1;
     RosMarkerUtils::setpose_to_marker( w_T_b, cam_b );
     RosMarkerUtils::setcolor_to_marker( .0, 1.0, 0.0, cam_b );
 
-    RosMarkerUtils::init_camera_marker( cam_b_new, 1.0 );
+    RosMarkerUtils::init_camera_marker( cam_b_new, 3.0 );
     cam_b_new.ns = "camera";
     cam_b_new.id = 2;
     RosMarkerUtils::setpose_to_marker( w_Tcap_b, cam_b_new );

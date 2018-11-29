@@ -328,7 +328,7 @@ void MiscUtils::plot_point_pair( const cv::Mat& imA, const MatrixXd& ptsA, int i
   if( msg.length() > 0 ) { // ':' separated. Each will go in new line
       std::vector<std::string> msg_tokens = split(msg, ':');
       for( int h=0 ; h<msg_tokens.size() ; h++ )
-          cv::putText( status, msg_tokens[h].c_str(), cv::Point(10,80+20*h), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255), 1.5 );
+          cv::putText( status, msg_tokens[h].c_str(), cv::Point(10,80+20*h), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255,255,255), 1.5 );
   }
 
 
@@ -420,7 +420,7 @@ void MiscUtils::plot_point_pair( const cv::Mat& imA, const MatrixXd& ptsA, int i
   if( msg.length() > 0 ) { // ':' separated. Each will go in new line
       std::vector<std::string> msg_tokens = split(msg, ':');
       for( int h=0 ; h<msg_tokens.size() ; h++ )
-          cv::putText( status, msg_tokens[h].c_str(), cv::Point(10,80+20*h), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255), 1.5 );
+          cv::putText( status, msg_tokens[h].c_str(), cv::Point(10,80+20*h), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255,255,255), 1.5 );
   }
 
 

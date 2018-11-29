@@ -405,7 +405,7 @@ void StereoGeometry::do_stereoblockmatching_of_srectified_images(
 {
     // sgbm->compute( imleft_srectified, imright_srectified, disparity ); //disparity is CV_16UC1
     bm->compute( imleft_srectified, imright_srectified, disparity ); //disparity is CV_16UC1
-    cout << "[StereoGeometry::do_stereoblockmatching_of_srectified_images] disparity" << MiscUtils::cvmat_info( disparity ) << endl;
+    // cout << "[StereoGeometry::do_stereoblockmatching_of_srectified_images] disparity" << MiscUtils::cvmat_info( disparity ) << endl;
 }
 
 // raw--> disparity
@@ -705,6 +705,31 @@ void StereoGeometry::get_srectifiedim_and_3dpoints_and_disparity_from_raw_images
 
     // disparity to 3D points
     cv::Mat _3dImage;
+    this->disparity_to_3DPoints( disp_raw, _3dImage, _3dpts, true, true );
+
+    cv::Mat disparity_for_visualization_gray;
+    cv::normalize(disp_raw, disparity_for_visualization_gray, 0, 255, CV_MINMAX, CV_8U); //< disp8 used just for visualization
+    cv::applyColorMap(disparity_for_visualization_gray, disparity_for_visualization, cv::COLORMAP_HOT);
+
+
+
+
+}
+
+void StereoGeometry::get_srectifiedim_and_3dpoints_and_3dmap_and_disparity_from_raw_images(
+                    const cv::Mat& imleft_raw, const cv::Mat& imright_raw,
+                    cv::Mat& imleft_srectified, cv::Mat& imright_srectified,
+                    MatrixXd& _3dpts, cv::Mat& _3dImage, cv::Mat& disparity_for_visualization    )
+{
+    // raw --> srectified
+    this->do_stereo_rectification_of_raw_images( imleft_raw, imright_raw, imleft_srectified,  imright_srectified );
+
+    // block matching
+    cv::Mat disp_raw;
+    this->do_stereoblockmatching_of_srectified_images( imleft_srectified, imright_srectified, disp_raw );
+
+
+    // disparity to 3D points
     this->disparity_to_3DPoints( disp_raw, _3dImage, _3dpts, true, true );
 
     cv::Mat disparity_for_visualization_gray;
