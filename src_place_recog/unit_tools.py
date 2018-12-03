@@ -277,3 +277,128 @@ def play_trajectory_with_loopcandidates( VIO__w_t_i, T, BASE=None, pub=None, pub
 
         cv2.waitKey(1)
         rate.sleep()
+
+
+
+
+# See if s exists in S
+def find_candidate_in_set( s, S, lthresh=6, rthresh=6 ):
+    for s_i in S:
+        if ( abs(s[0] - s_i[0]) < lthresh and abs( s[1] - s_i[1]) < rthresh ) or ( abs(s[0] - s_i[1]) < rthresh and abs( s[1] - s_i[0]) < lthresh ):
+            return True, s_i
+    return False, None
+
+# See if s exists in S. Returns noccurences
+def find_candidate_hit_in_set( s, S, lthresh=6, rthresh=6 ):
+    n = 0
+    n_list = []
+    for s_i in S:
+        if ( abs(s[0] - s_i[0]) < lthresh and abs( s[1] - s_i[1]) < rthresh ) or ( abs(s[0] - s_i[1]) < rthresh and abs( s[1] - s_i[0]) < lthresh ):
+            #return True, s_i
+            n += 1
+            n_list.append( s_i )
+    return n, n_list
+
+# Given the loop candidates, compare these with manual annotations
+def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=None ):
+    selected_loop_candidates = []
+
+
+
+    import json
+    manual_loop_candidates = []
+    print 'Load Manual Annotations json'
+    with open(manual_loop_candidates_json_fname) as f:
+        loopcandidate_manual_data = json.load(f)
+
+    manual_loop_candidates = []
+    for u in loopcandidate_manual_data:
+        print u
+        manual_loop_candidates.append( ( u['global_a'], u['global_b'] ) )
+
+
+
+    print 'input loop candidates = ', len(T)
+
+    if False:
+        TH = 0.92
+        for i in range( 0,len(T)-3, 3 ):
+            p0 = int(T[i][0])
+            p1 = int(T[i][1])
+            score = T[i][2]
+
+            if score > TH and abs(T[i+1][1] - p1) < 12 and abs(T[i+2][1] - p1) < 12: # and T[i+1][2] > TH and T[i+2][2] > TH:
+                # print '%d<--(%4.2f)-->%d' %( p0, score, p1 ), '\tAccept'
+                selected_loop_candidates.append( (p0, p1) )
+
+    else:
+        selected_loop_candidates = T
+
+
+    print 'len(selected_loop_candidates)=', len(selected_loop_candidates)
+    # code.interact( local=locals() )
+    # return
+
+    # print 'manual_loop_candidates\n'
+    # for m in manual_loop_candidates:
+    #     print m
+    #
+    #
+    # print 'selected_loop_candidates\n'
+    # for m in selected_loop_candidates:
+    #     print m
+    # code.interact( local=locals() )
+
+
+    # Step - 1
+    # Loop thru `selected_loop_candidates`
+    print 'Step-1: Loop thru `selected_loop_candidates'
+    a = 0
+    for s in selected_loop_candidates:
+        decision, found = find_candidate_in_set( s,  manual_loop_candidates, 50, 50 )
+        print 'find ', s, 'in manual_candidates', decision, found
+        if decision > 0 :
+            a += decision
+
+
+
+    # Step - 2
+    # Loop thru `manual_loop_candidates`
+    print 'Step-2: Loop thru `manual_loop_candidates`'
+    b = 0
+    for s in manual_loop_candidates:
+        decision, found = find_candidate_in_set( s,  selected_loop_candidates, 50, 50 )
+        print 'find ', s, 'in selected_loop_candidates',decision, found
+        if decision > 0:
+            b += decision
+
+    print '# of selected found in manual = %d' %( a )
+    print '# of manual found in selected = %d' %( b )
+    print '# of selected = %d' %( len( selected_loop_candidates ) )
+    print '# of manual = %d' %( len(manual_loop_candidates) )
+
+    try:
+        print '\nprecision = %4.4f' %( float(a) /  len( selected_loop_candidates ) )
+        print 'recall    = %4.4f' %( float(b)/ len(manual_loop_candidates))
+    except:
+        pass
+
+    IM = np.zeros( (150,450)).astype('uint8')
+    cv2.putText(IM,'# of selected found in manual = %d' %(a) , (10,15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+    cv2.putText(IM, '# of manual found in selected = %d' %( b ), (10,35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+    cv2.putText(IM,'# of selected = %d' %( len( selected_loop_candidates ) ), (10,65), cv2.FONT_HERSHEY_SIMPLEX, .5, 255)
+    cv2.putText(IM,'# of manual = %d' %( len(manual_loop_candidates) ), (10,85), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+    try:
+        cv2.putText(IM,'precision = %4.4f' %( float(a) / len( selected_loop_candidates ) ), (10,115), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+        cv2.putText(IM,'recall    = %4.4f' %( float(b)/ len(manual_loop_candidates) ), (10,135), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+    except:
+        pass
+    cv2.imshow( 'comaprison with manual', IM )
+
+    # print 'press any key to end comparuson'
+    # cv2.waitKey(0)
+    # cv2.destroyWindow( 'comaprison with manual' )
+
+    # if dump_file_ptr is not None:
+        # dump_file_ptr.write( '%4.2f,%d,%d,%d,%d\n' %(TH, a,b,len( selected_loop_candidates ),len(manual_loop_candidates) ) )
+    # code.interact( local=locals() )

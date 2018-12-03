@@ -41,7 +41,9 @@ using json = nlohmann::json;
 // const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_pinhole_multiple_loops_in_lab/";
 // const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_pinhole_rotated_loops_in_lab/";
 
-const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_seng/";
+const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_academic_concourse/";
+// const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/";
+// const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_seng/";
 
 
 void point_feature_matches( const cv::Mat& imleft_undistorted, const cv::Mat& imright_undistorted,
@@ -233,6 +235,10 @@ bool relative_pose_compute_with_theia( std::shared_ptr<StereoGeometry> stereogeo
         world_point.push_back( Vector3d( _3dpt[0], _3dpt[1], _3dpt[2] ) );
     }
     cout << "of the total " << u.cols() << " point feature correspondences " << c << " had valid depths\n";
+    if( c < 30 ) {
+        cout << TermColor::RED() << "too few valid 3d points between " << frame_a << " and " << frame_b << TermColor::RESET() << endl;
+        return false;
+    }
 
 
     #if 1
@@ -327,7 +333,7 @@ void plot_loop_candidates_as_lines( json& log, json& loopcandidates, ros::Publis
     {
         // int global_a = loopcandidates[i]["global_a"];
         // int global_b = loopcandidates[i]["global_b"];
-        int global_a = loopcandidates[i]["global_b"]; //smaller indx to be called `a`.
+        int global_a = loopcandidates[i]["global_b"]; //smaller indx to be called `a`. This inverting was done for pose computation.
         int global_b = loopcandidates[i]["global_a"];
         cout << TermColor::iGREEN() << i  << "   global_a=" << global_a << "  global_b=" << global_b << TermColor::RESET() << endl;
 
@@ -351,6 +357,11 @@ void plot_loop_candidates_as_lines( json& log, json& loopcandidates, ros::Publis
         bool status = relative_pose_compute_with_theia( stereogeom, global_a,global_b, b_T_a );
         if( status ) {
             Matrix4d w_Tcap_b =  w_T_a * b_T_a.inverse(); //< new pose
+
+            cout << "w_T_"<< global_a << ": " << PoseManipUtils::prettyprintMatrix4d( w_T_a ) << endl;
+            cout << "w_T_"<< global_b << ": " << PoseManipUtils::prettyprintMatrix4d( w_T_b ) << endl;
+            cout << "w_Tcap_"<< global_b << ": " << PoseManipUtils::prettyprintMatrix4d( w_Tcap_b ) << endl; //new pose of b.
+
             RosMarkerUtils::init_line_marker( loop_line_marker_new, w_T_a.col(3).topRows(3), w_Tcap_b.col(3).topRows(3)  );
             RosMarkerUtils::setcolor_to_marker( 1.0, 1.0, 1.0, loop_line_marker_new );
             loop_line_marker_new.ns = "loopcandidates_corrected";
@@ -414,6 +425,7 @@ int main( int argc, char ** argv )
 
 
 
+    cout << "ros::spin()\n. Press CTRL+C to quit\n";
     ros::spin();
 
 

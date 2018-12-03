@@ -82,7 +82,8 @@ if __name__ == "__main__":
     # BASE = '/Bulk_Data/_tmp_cerebro/tum_magistrale4/'
 
     # BASE = '/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/'
-    BASE = '/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/'
+    BASE = '/Bulk_Data/_tmp_cerebro/mynt_pinhole_1loop_in_lab/'
 
 
 
@@ -122,7 +123,7 @@ if __name__ == "__main__":
 
 
     # Create Loop Candidates or Load file loopcandidates_?_.json
-    if False:
+    if True:
         #
         # Loops over all images and precomputes their netvlad vector (or read the .npz file)
         #
@@ -167,7 +168,7 @@ if __name__ == "__main__":
                     break
             netvlad_desc = np.array( netvlad_desc ) # N x 4096. 4096 is the length of netvlad vector.
 
-            fname = BASE+'/file.npz'
+            fname = BASE+'/file.npz' #TODO, will read the model filename from server-response.
             print 'Save `netvlad_desc` and `netvlad_at_i` in ', fname
             np.savez_compressed(BASE+'/file.npz', netvlad_desc=netvlad_desc, netvlad_at_i=netvlad_at_i)
         else:
@@ -191,36 +192,38 @@ if __name__ == "__main__":
         D = netvlad_desc
         T = []
         for i in range( netvlad_desc.shape[0] ):
-                if i < 50: #don't lookup for first few frames
+                if i < 150: #don't lookup for first few frames
                     continue
 
-                DOT = np.dot( D[0:i-45,:], D[i,:] ) # compare D_live[i] will all the memory
+                DOT = np.dot( D[0:i-145,:], D[i,:] ) # compare D_live[i] will all the memory
                 score  = np.max(DOT)
                 argmax = np.argmax( DOT )
                 #print 'Nearest neighobour of %d of live in db is %d (dotprodt = %4.4f)' %( netvlad_at_i[i], netvlad_at_i[argmax], score )
 
                 T.append( (netvlad_at_i[i], netvlad_at_i[argmax], score) )
 
-                plot_handle.create()
-                cv2.imshow( 'plot', plot_handle.plot( DOT ).astype('uint8') )
-                cv2.waitKey(0)
-
+                if True:
+                    plot_handle.create()
+                    cv2.imshow( 'plot', plot_handle.plot( DOT ).astype('uint8') )
+                    cv2.waitKey(20)
+        # cv2.destroyWindow( 'plot' )
         # This is a locality and threshold filtering.
         S = filter_candidates( T, TH=0., locality=8 )
 
     else:
         # Load the candidates from json file
-        loopcandidate_json_fname = BASE+'/loopcandidates_ibow_lcd.json'
+        # loopcandidate_json_fname = BASE+'/loopcandidates_ibow_lcd.json'
         # loopcandidate_json_fname = BASE+'/loopcandidates_dbow.json'
         # loopcandidate_json_fname = BASE+'/loopcandidates_liverun.json'
+        loopcandidate_json_fname = BASE+'/loopcandidates_manually_marked.json'
         print 'LOAD file: ', loopcandidate_json_fname
         with open(loopcandidate_json_fname) as f:
             loopcandidate__data = json.load(f)
 
         T = []
         for l in loopcandidate__data:
-            T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
-            # T.append(  ( l['global_a'], l['global_b'], l['score'] ) )
+            # T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
+            T.append(  ( l['global_a'], l['global_b'], l['score'] ) )
         # code.interact( local=locals() )
         # quit()
 
@@ -261,7 +264,7 @@ if __name__ == "__main__":
                     <a> to increment threshold by %4.6f.<z> to decrement.\n\
                     <s> to view current loop-candidates and write list as csv file.\n\
                     <p> play like a video\n\
-                    <c> compare current candidates with manual annotations (not in use)\n\
+                    <e> compare current candidates with manual annotations (not in use)\n\
                     <f> next filtering mode\n\
                     <j> double the TH_step\n\
                     <k> half the TH_step\n\
@@ -298,6 +301,12 @@ if __name__ == "__main__":
             if do_filter_candidates >= do_filter_candidates_len:
                 do_filter_candidates = 0
             print_msg = True
+        if key == ord( 'e' ): #Evaluate with manual annotations
+            # This intended to be called when raw descriptors are available.
+            # ie. not just the candidates but the descriptors were also available.
+            from unit_tools import compare_with_manual
+            # compare_with_manual( T, BASE+'/loopcandidates_manually_marked.json' )
+            compare_with_manual( S, BASE+'/loopcandidates_manually_marked.json' )
 
         if key == ord( 'r' ):
             TH_step = 0.005
