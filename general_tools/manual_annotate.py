@@ -25,7 +25,8 @@ import os.path
 
 
 # BASE = '/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/'
-BASE = '/Bulk_Data/_tmp_cerebro/mynt_pinhole_1loop_in_lab/'
+# BASE = '/Bulk_Data/_tmp_cerebro/mynt_pinhole_1loop_in_lab/'
+BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
 
 # Step-0:
 LOG_FILE_NAME = BASE+'/log.json'
@@ -75,7 +76,7 @@ if not os.path.isfile(BASE+'/loopcandidates_manually_marked_detailed.json'): #ma
         # im = cv2.imread( fname )
         im = image_at[ i ]
         idx = idx_at[ i ]
-        print 'idx=', idx, ' of ', len( idx_at ), '  current_scene_id=', scene_id
+        print 'idx=', idx, '::: ', i, ' of ', len( idx_at ), '  current_scene_id=', scene_id
         cv2.imshow( 'im', im )
         key = cv2.waitKey(0)
         print 'press <space> to continue. press n to start new scene at this location'
@@ -148,7 +149,7 @@ for key0 in inv_S:
         if key0 >= key1 or abs(key0 - key1)<2 or np.linalg.norm(position_key0-position_key1) > 6.  or abs(val1['start'] - val0['start']) < 40:
             continue
 
-        print '%d [%d,%d] <---> %d [%d,%d] match?(y,n)' %(key0, val0['start'], val0['end'],  key1, val1['start'], val1['end'] )
+        print '%d [%d,%d] <---> %d [%d,%d] match?(y,n). Total segs=%d' %(key0, val0['start'], val0['end'],  key1, val1['start'], val1['end'], len(inv_S.keys()) )
 
         mid_pt0 = int(  (val0['start'] + val0['end'] )/2 )
         mid_pt1 = int(  (val1['start'] + val1['end'] )/2 )
@@ -161,6 +162,7 @@ for key0 in inv_S:
         key = cv2.waitKey(0)
         if key == ord('y'):
             matching_pairs.append( (key0, key1) )
+            print 'MATCH ', key0, key1
 
             # mid -- mid,    mid -- start,    mid -- end
             # start -- mid,    start -- start,    start -- end
@@ -195,6 +197,7 @@ with open(BASE+'/loopcandidates_manually_marked_detailed.json', 'w') as outfile:
 
 
 print 'Writing ', BASE+'/loopcandidates_manually_marked.json'
+JSON_OBH['candidates'][0]["meta"] = "These are all manually marked. The scores in this file have no meaning, they are just random numbers. They are here to maintain consist file format"
 with open(BASE+'/loopcandidates_manually_marked.json', 'w') as outfile:
     # json.dumps(JSON_OBH, outfile, indent=4 )
     json.dump(JSON_OBH['candidates'], outfile, indent=4)

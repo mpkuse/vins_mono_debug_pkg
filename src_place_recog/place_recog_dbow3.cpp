@@ -48,7 +48,8 @@ using json = nlohmann::json;
 // const std::string BASE = "/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/";
 // const std::string BASE = "/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/";
 
-const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/";
+// const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/";
+const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/";
 
 
 // #define __place_recog_dbow3_cpp_loadFeatures( msg ) msg

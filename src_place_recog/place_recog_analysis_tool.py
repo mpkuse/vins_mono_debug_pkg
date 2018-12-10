@@ -83,7 +83,9 @@ if __name__ == "__main__":
 
     # BASE = '/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/'
     # BASE = '/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/'
-    BASE = '/Bulk_Data/_tmp_cerebro/mynt_pinhole_1loop_in_lab/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/mynt_pinhole_1loop_in_lab/'
+    BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
+
 
 
 
@@ -123,11 +125,11 @@ if __name__ == "__main__":
 
 
     # Create Loop Candidates or Load file loopcandidates_?_.json
-    if True:
+    if False:
         #
         # Loops over all images and precomputes their netvlad vector (or read the .npz file)
         #
-        if False: #making this to false will load npz files which contain the pre-computes descriptors.
+        if True: #making this to false will load npz files which contain the pre-computes descriptors.
             #
             # Init Keras Model - NetVLAD / Enable Service
             #
@@ -155,12 +157,14 @@ if __name__ == "__main__":
                 im = cv2.imread( BASE+'%d.jpg' %(i) )
 
                 start_time = time.time()
-                print '---', i , '\n'
+                print '---', i , ' of ', len(data['DataNodes']), '\n'
                 image_msg = CvBridge().cv2_to_imgmsg( im )
                 rcvd_ = service_proxy( image_msg, 24 )
                 netvlad_desc.append( rcvd_.desc )
                 netvlad_at_i.append( i )
-                print 'Done in %4.4fms' %( 1000. * (time.time() - start_time ) )
+                print 'Done in %4.4fms' %( 1000. * (time.time() - start_time ) ),
+                print '\tdesc.shape=', str( np.array(rcvd_.desc).shape )
+                print '\tdesc.model_type=', rcvd_.model_type
 
                 cv2.imshow( 'im', im )
                 key = cv2.waitKey(10)
@@ -168,11 +172,12 @@ if __name__ == "__main__":
                     break
             netvlad_desc = np.array( netvlad_desc ) # N x 4096. 4096 is the length of netvlad vector.
 
-            fname = BASE+'/file.npz' #TODO, will read the model filename from server-response.
-            print 'Save `netvlad_desc` and `netvlad_at_i` in ', fname
-            np.savez_compressed(BASE+'/file.npz', netvlad_desc=netvlad_desc, netvlad_at_i=netvlad_at_i)
+            # fname = BASE+'/file.npz' #TODO, will read the model filename from server-response.
+            fname = BASE+'/'+rcvd_.model_type+'.npz'
+            print 'Save `netvlad_desc` (shape=%s) and `netvlad_at_i` in ' %( str(netvlad_desc.shape) ), fname
+            np.savez_compressed( fname, netvlad_desc=netvlad_desc, netvlad_at_i=netvlad_at_i)
         else:
-            fname = BASE+'/file.npz'
+            fname = BASE+'/relja_matlab_model.npz'
             print 'Load ', fname
             loaded = np.load(fname)
             netvlad_desc = loaded['netvlad_desc']
