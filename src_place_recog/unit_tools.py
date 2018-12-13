@@ -162,12 +162,15 @@ def publish_marker( pub, VIO__w_t_i, T, TH=0.92, max_n=None, BASE=None  ):
 def imshow_loopcandidates( T, BASE=None, VIO__w_t_i=None, pub=None ):
     assert( BASE is not None )
 
+
+
     # for i in range( 0,len(T)-3, 3 ):
     for i in range( 0, len(T) ):
         p0 = int(T[i][0])
         p1 = int(T[i][1])
         score = T[i][2]
-        print '[%d of %d]' %(i, len(T)), '%d<--(%4.2f)-->%d' %( p0, score, p1 ), '\tAccept'
+        print '[imshow_loopcandidates:%d of %d]' %(i, len(T)), '%d<--(%4.2f)-->%d' %( p0, score, p1 )
+
 
         im0 = cv2.imread( BASE+'/%d.jpg' %(p0) )
         im1 = cv2.imread( BASE+'/%d.jpg' %(p1) )
@@ -288,26 +291,27 @@ def find_candidate_in_set( s, S, lthresh=6, rthresh=6 ):
             return True, s_i
     return False, None
 
+# TODO: not in use removal
 # See if s exists in S. Returns noccurences
-def find_candidate_hit_in_set( s, S, lthresh=6, rthresh=6 ):
-    n = 0
-    n_list = []
-    for s_i in S:
-        if ( abs(s[0] - s_i[0]) < lthresh and abs( s[1] - s_i[1]) < rthresh ) or ( abs(s[0] - s_i[1]) < rthresh and abs( s[1] - s_i[0]) < lthresh ):
-            #return True, s_i
-            n += 1
-            n_list.append( s_i )
-    return n, n_list
+# def find_candidate_hit_in_set( s, S, lthresh=6, rthresh=6 ):
+#     n = 0
+#     n_list = []
+#     for s_i in S:
+#         if ( abs(s[0] - s_i[0]) < lthresh and abs( s[1] - s_i[1]) < rthresh ) or ( abs(s[0] - s_i[1]) < rthresh and abs( s[1] - s_i[0]) < lthresh ):
+#             #return True, s_i
+#             n += 1
+#             n_list.append( s_i )
+#     return n, n_list
 
 # Given the loop candidates, compare these with manual annotations
-def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=None ):
+def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=None, BASE=None ):
     selected_loop_candidates = []
 
 
 
     import json
     manual_loop_candidates = []
-    print 'Load Manual Annotations json'
+    print 'Load Manual Annotations json: ', manual_loop_candidates_json_fname
     with open(manual_loop_candidates_json_fname) as f:
         loopcandidate_manual_data = json.load(f)
 
@@ -354,11 +358,37 @@ def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=No
     # Loop thru `selected_loop_candidates`
     print 'Step-1: Loop thru `selected_loop_candidates'
     a = 0
-    for s in selected_loop_candidates:
-        decision, found = find_candidate_in_set( s,  manual_loop_candidates, 50, 50 )
-        print 'find ', s, 'in manual_candidates', decision, found
+    for enum_s, s in enumerate(selected_loop_candidates):
+        decision, found = find_candidate_in_set( s,  manual_loop_candidates, 200, 200 )
+        status_str = 'find '+ str(s)+ 'in set {manual_candidates}? FOUND:'+ str( decision )+ str(found)
+        print '[%d of %d]' %(enum_s, len(selected_loop_candidates)), status_str
         if decision > 0 :
             a += decision
+
+        if BASE is not None: #imshow this pair
+            __im1 = cv2.imread( BASE+'/%d.jpg' %(s[0]) )
+            __im2 = cv2.imread( BASE+'/%d.jpg' %(s[1]) )
+
+            __im1_im2 = cv2.resize( np.hstack((__im1,__im2)), (0,0), fx=0.5, fy=0.5 )
+            __status_im = np.zeros( (50, __im1_im2.shape[1], 3), dtype='uint8' )
+            if found:
+                txt_color = (0,255,0)
+            else:
+                txt_color = (0,0,255)
+            cv2.putText(__status_im,status_str, (10,15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_color )
+            cv2.putText(__status_im, "       ^^^^^of set {selected_loop_candidates}", (10,35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_color )
+
+
+            # cv2.imshow( '__im1_im2', __im1_im2 )
+            cv2.imshow( 'selected_loop_candidates__im1_im2', np.vstack( (__im1_im2, __status_im) ) )
+            print '[in compare with manual/step1] any key to continue'
+            key = cv2.waitKey(0)
+            if key == ord( 'q' ):
+                cv2.destroyWindow( 'selected_loop_candidates__im1_im2')
+                BASE=None
+
+    if BASE is not None:
+        cv2.destroyWindow( 'selected_loop_candidates__im1_im2')
 
 
 
@@ -366,11 +396,37 @@ def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=No
     # Loop thru `manual_loop_candidates`
     print 'Step-2: Loop thru `manual_loop_candidates`'
     b = 0
-    for s in manual_loop_candidates:
-        decision, found = find_candidate_in_set( s,  selected_loop_candidates, 50, 50 )
-        print 'find ', s, 'in selected_loop_candidates',decision, found
+    for enum_s,s in enumerate( manual_loop_candidates ):
+        decision, found = find_candidate_in_set( s,  selected_loop_candidates, 200, 200 )
+        status_str = 'find '+ str(s) + 'in set {selected_loop_candidates}? FOUND: '+ str(decision)+ str(found)
+        print '[%d of %d]' %( enum_s, len( manual_loop_candidates) ), status_str
         if decision > 0:
             b += decision
+
+        if BASE is not None: #imshow this pair
+            __im1 = cv2.imread( BASE+'/%d.jpg' %(s[0]) )
+            __im2 = cv2.imread( BASE+'/%d.jpg' %(s[1]) )
+
+            __im1_im2 = cv2.resize( np.hstack((__im1,__im2)), (0,0), fx=0.5, fy=0.5 )
+            __status_im = np.zeros( (50, __im1_im2.shape[1], 3), dtype='uint8' )
+            if found:
+                txt_color = (0,255,0)
+            else:
+                txt_color = (0,0,255)
+            cv2.putText(__status_im,status_str, (10,15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_color )
+            cv2.putText(__status_im, "       ^^^^^of set {manual_loop_candidates}", (10,35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_color )
+
+            # cv2.imshow( '__im1_im2', __im1_im2 )
+            cv2.imshow( 'manual_loop_candidates__im1_im2', np.vstack( (__im1_im2, __status_im) ) )
+            print '[in compare with manual/step2] any key to continue'
+            key = cv2.waitKey(0)
+            if key == ord('q'):
+                cv2.destroyWindow( 'manual_loop_candidates__im1_im2')
+                BASE=None
+
+    if BASE is not None:
+        cv2.destroyWindow( 'manual_loop_candidates__im1_im2')
+
 
     print '# of selected found in manual = %d' %( a )
     print '# of manual found in selected = %d' %( b )
@@ -394,6 +450,7 @@ def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=No
     except:
         pass
     cv2.imshow( 'comaprison with manual', IM )
+
 
     # print 'press any key to end comparuson'
     # cv2.waitKey(0)

@@ -26,7 +26,8 @@ import os.path
 
 # BASE = '/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/'
 # BASE = '/Bulk_Data/_tmp_cerebro/mynt_pinhole_1loop_in_lab/'
-BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
+# BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
+BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
 
 # Step-0:
 LOG_FILE_NAME = BASE+'/log.json'

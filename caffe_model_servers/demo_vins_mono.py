@@ -13,7 +13,9 @@ from simplistic_experiment import load_calc_net, get_calc_descriptor
 
 
 #------------ Load log.json
-BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
+# BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
+BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
+
 LOG_FILE_NAME = BASE+'/log.json'
 print 'Open file: ', LOG_FILE_NAME
 with open(LOG_FILE_NAME) as data_file:
@@ -62,14 +64,15 @@ for i in range( len(data['DataNodes']) ):
     if 'M' in vars(): # Do Gaussian Random Normalization only if M is defined. skip otherwise
         u = np.matmul( M, _descriptor )
         u = u / np.linalg.norm( u )
+        print '\tdesc.shape=', str( u.shape )
         netvlad_desc.append( u )
     else:
+        print '\tdesc.shape=', str( _descriptor.shape )
         netvlad_desc.append( _descriptor )
 
 
     netvlad_at_i.append( i )
     print 'Done in %4.4fms' %( 1000. * (time.time() - start_time ) ),
-    print '\tdesc.shape=', str( _descriptor.shape )
 
     continue
 
