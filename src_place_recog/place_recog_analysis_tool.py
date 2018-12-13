@@ -125,11 +125,11 @@ if __name__ == "__main__":
 
 
     # Create Loop Candidates or Load file loopcandidates_?_.json
-    if False:
+    if True:
         #
         # Loops over all images and precomputes their netvlad vector (or read the .npz file)
         #
-        if True: #making this to false will load npz files which contain the pre-computes descriptors.
+        if False: #making this to false will load npz files which contain the pre-computes descriptors.
             #
             # Init Keras Model - NetVLAD / Enable Service
             #
@@ -177,7 +177,8 @@ if __name__ == "__main__":
             print 'Save `netvlad_desc` (shape=%s) and `netvlad_at_i` in ' %( str(netvlad_desc.shape) ), fname
             np.savez_compressed( fname, netvlad_desc=netvlad_desc, netvlad_at_i=netvlad_at_i)
         else:
-            fname = BASE+'/relja_matlab_model.npz'
+            # fname = BASE+'/relja_matlab_model.npz'
+            fname = BASE+'/caffemodel_calc_descriptor.npz'
             print 'Load ', fname
             loaded = np.load(fname)
             netvlad_desc = loaded['netvlad_desc']

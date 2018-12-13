@@ -3,6 +3,7 @@ import cv2
 import os.path
 import code
 import scipy.io
+import random
 
 # Needed to make ros-service call.
 import rospy
@@ -138,7 +139,7 @@ def make_viz_image( n_setA, n_setB, candidates=None ):
 
 #------------------ EVAL ------------------------#
 # See if s exists in S
-def find_candidate_in_set( s, S, lthresh=5, rthresh=5 ):
+def find_candidate_in_set( s, S, lthresh=6, rthresh=6 ):
     for s_i in S:
         if abs(s[0] - s_i[0]) < lthresh and abs(s[1] - s_i[1]) < rthresh:
         # if ( abs(s[0] - s_i[0]) < lthresh and abs( s[1] - s_i[1]) < rthresh ) or ( abs(s[0] - s_i[1]) < rthresh and abs( s[1] - s_i[0]) < lthresh ):
@@ -151,25 +152,29 @@ def evaluate_precision_recall( candidate_method, candidates_gt ):
 
     print 'see if candidates[i] \\in {candidates_gt}'
     a = 0
-    for s in candidate_method:
+    for s in candidate_method: # `a` will be number of true positives
         verdict, _  = find_candidate_in_set( s, candidates_gt )
         print 'find', s, ' in candidates_gt', verdict
         if verdict:
             a+=1
-    print '#True verdicts = ', a
+    print '#True Positives = ', a
+    print '#False Positives = ', len(candidate_method) - a
+    print '|candidates|=', len(candidate_method)
+    print '|candidates_gt|=', len(candidates_gt)
 
-    print '---'
-    print 'see if candidates_gt[i] \\in {candidate}'
-    b = 0
-    for s in candidates_gt:
-        verdict, _ = find_candidate_in_set( s, candidate_method )
-        print 'find', s, ' in candidate', verdict
-        if verdict:
-            b+=1
-    print '#True verdicts = ', b
+    # print '---'
+    # print 'see if candidates_gt[i] \\in {candidate}'
+    # b = 0
+    # for s in candidates_gt:
+    #     verdict, _ = find_candidate_in_set( s, candidate_method )
+    #     print 'find', s, ' in candidate', verdict
+    #     if verdict:
+    #         b+=1
+    # print '#True verdicts = ', b
 
-    print 'Precision = %4.4f' %( float(a)/len(candidate_method) )
-    print 'Recall    = %4.4f' %( float(b)/len(candidates_gt))
+    print 'Precision = %4.4f' %( float(a)/len(candidate_method) ) #Ok! verified
+    # print 'Recall    = %4.4f' %( float(b)/len(candidates_gt))
+    print 'Recall    = %4.4f' %( float(a)/len(candidates_gt)) # since there are no true negatives, |candidates_gt| == relavant samples
 
 
 plot_handle = Plot2Mat()
@@ -190,11 +195,93 @@ if __name__ == '__1main__':
     np.savez_compressed( npz_fnameB, netvlad_desc=netvlad_desc_B )
 
 
+def conditions( num, DOT, DOT_p1, DOT_m1 ):
+    if num == 0:
+        return DOT.max() > 0.0
+    if num == 1:
+        return DOT.max() > 0.1
+    if num == 2:
+        return DOT.max() > 0.6
+    if num == 3:
+        return DOT.max() > 0.64
+    if num == 4:
+        return DOT.max() > 0.67
+
+    #---
+    if num == 10:
+        return DOT.max() > 0.0 and abs( DOT.argmax() - DOT_p1.argmax() )<8
+    if num == 11:
+        return DOT.max() > 0.1 and abs( DOT.argmax() - DOT_p1.argmax() )<8
+    if num == 12:
+        return DOT.max() > 0.6 and abs( DOT.argmax() - DOT_p1.argmax() )<8
+    if num == 13:
+        return DOT.max() > 0.64 and abs( DOT.argmax() - DOT_p1.argmax() )<8
+    if num == 14:
+        return DOT.max() > 0.67 and abs( DOT.argmax() - DOT_p1.argmax() )<8
+    if num == 15:
+        return DOT.max() > 0.0 and abs( DOT.argmax() - DOT_p1.argmax() )<6
+    if num == 16:
+        return DOT.max() > 0.1 and abs( DOT.argmax() - DOT_p1.argmax() )<6
+    if num == 17:
+        return DOT.max() > 0.6 and abs( DOT.argmax() - DOT_p1.argmax() )<6
+    if num == 18:
+        return DOT.max() > 0.64 and abs( DOT.argmax() - DOT_p1.argmax() )<6
+    if num == 19:
+        return DOT.max() > 0.67 and abs( DOT.argmax() - DOT_p1.argmax() )<6
+    if num == 8:
+        return DOT.max() > 0.1 and abs( DOT.argmax() - DOT_p1.argmax() )<3
+    if num == 5:
+        return DOT.max() > 0.6 and abs( DOT.argmax() - DOT_p1.argmax() )<3
+    if num == 6:
+        return DOT.max() > 0.65 and abs( DOT.argmax() - DOT_p1.argmax() )<3
+    if num == 7:
+        return DOT.max() > 0.70 and abs( DOT.argmax() - DOT_p1.argmax() )<3
+
+    #---
+    if num == 20:
+        return DOT.max() > .0 and abs( DOT.argmax() - DOT_p1.argmax() )<3 and abs( DOT.argmax() - DOT_m1.argmax() )<3
+    if num == 21:
+        return DOT.max() > .1 and abs( DOT.argmax() - DOT_p1.argmax() )<3 and abs( DOT.argmax() - DOT_m1.argmax() )<3
+    if num == 22:
+        return DOT.max() > .6 and abs( DOT.argmax() - DOT_p1.argmax() )<3 and abs( DOT.argmax() - DOT_m1.argmax() )<3
+    if num == 23:
+        return DOT.max() > .64 and abs( DOT.argmax() - DOT_p1.argmax() )<3 and abs( DOT.argmax() - DOT_m1.argmax() )<3
+    if num == 24:
+        return DOT.max() > .67 and abs( DOT.argmax() - DOT_p1.argmax() )<3 and abs( DOT.argmax() - DOT_m1.argmax() )<3
+
+
+    if num == 25:
+        return DOT.max() > .0 and abs( DOT.argmax() - DOT_p1.argmax() )<6 and abs( DOT.argmax() - DOT_m1.argmax() )<6
+    if num == 26:
+        return DOT.max() > .1 and abs( DOT.argmax() - DOT_p1.argmax() )<6 and abs( DOT.argmax() - DOT_m1.argmax() )<6
+    if num == 27:
+        return DOT.max() > .6 and abs( DOT.argmax() - DOT_p1.argmax() )<6 and abs( DOT.argmax() - DOT_m1.argmax() )<6
+    if num == 28:
+        return DOT.max() > .64 and abs( DOT.argmax() - DOT_p1.argmax() )<6 and abs( DOT.argmax() - DOT_m1.argmax() )<6
+    if num == 29:
+        return DOT.max() > .67 and abs( DOT.argmax() - DOT_p1.argmax() )<6 and abs( DOT.argmax() - DOT_m1.argmax() )<6
+
+
+    if num == 30:
+        return DOT.max() > .0 and abs( DOT.argmax() - DOT_p1.argmax() )<8 and abs( DOT.argmax() - DOT_m1.argmax() )<8
+    if num == 31:
+        return DOT.max() > .1 and abs( DOT.argmax() - DOT_p1.argmax() )<8 and abs( DOT.argmax() - DOT_m1.argmax() )<8
+    if num == 32:
+        return DOT.max() > .6 and abs( DOT.argmax() - DOT_p1.argmax() )<8 and abs( DOT.argmax() - DOT_m1.argmax() )<8
+    if num == 33:
+        return DOT.max() > .64 and abs( DOT.argmax() - DOT_p1.argmax() )<8 and abs( DOT.argmax() - DOT_m1.argmax() )<8
+    if num == 9:
+        return DOT.max() > .67 and abs( DOT.argmax() - DOT_p1.argmax() )<8 and abs( DOT.argmax() - DOT_m1.argmax() )<8
+
+
+    print 'you asked for non existant condition ', num
+    quit()
 
 if __name__ == '__main__':
 
     model_type = 'mobilenet_conv7_allpairloss'
-    model_type = 'relja_matlab_model'
+    # model_type = 'relja_matlab_model'
+    # model_type = 'block5_pool_k16_allpairloss'
 
     npz_fnameA = DB_BASE+'/'+SEQ+'/'+ model_type+'_1.npz'
     npz_fnameB = DB_BASE+'/'+SEQ+'/'+ model_type+'_2.npz'
@@ -204,6 +291,8 @@ if __name__ == '__main__':
     netvlad_desc_B = np.load( npz_fnameB )['netvlad_desc' ]
 
     ground_truth = load_ground_truth_candidates()
+
+    cond_idx = random.randint(0,33)
 
     if True:
         im = make_viz_image( netvlad_desc_A.shape[0], netvlad_desc_B.shape[0], ground_truth )
@@ -223,9 +312,11 @@ if __name__ == '__main__':
         argmaxi = DOT.argmax()
 
 
-        # if DOT.max() > 0.0:
+        # if DOT.max() > 0.6:
         # if DOT.max() > 0.0 and abs( DOT.argmax() - DOT_p1.argmax() )<8:
-        if DOT.max() > .597 and abs( DOT.argmax() - DOT_p1.argmax() )<3 and abs( DOT.argmax() - DOT_m1.argmax() )<3 :
+        # if DOT.max() > .497 and abs( DOT.argmax() - DOT_p1.argmax() )<3 and abs( DOT.argmax() - DOT_m1.argmax() )<3 :
+
+        if conditions( cond_idx, DOT, DOT_p1, DOT_m1 ):
             print 'candidate : ', i, argmaxi , 'score = ', maxi
             candidates.append( (argmaxi, i) )
 
@@ -235,13 +326,13 @@ if __name__ == '__main__':
             plotted_im = plot_handle.plot( DOT ).astype('uint8')
             plotted_im = plot_handle.mark( [argmaxi] )
             cv2.imshow( 'plot', plotted_im.astype('uint8') )
-            cv2.waitKey(0)
+            cv2.waitKey(20)
 
 
 
     im = make_viz_image( netvlad_desc_A.shape[0], netvlad_desc_B.shape[0], candidates )
     cv2.imshow( 'viz', im )
-    cv2.waitKey(0)
 
     evaluate_precision_recall( candidates, ground_truth )
-    quit()
+    print 'cond_idx', cond_idx
+    cv2.waitKey(200)
