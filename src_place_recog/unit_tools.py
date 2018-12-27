@@ -356,16 +356,17 @@ def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=No
 
     # Step - 1
     # Loop thru `selected_loop_candidates`
+    BASE1 = BASE
     print 'Step-1: Loop thru `selected_loop_candidates'
     a = 0
     for enum_s, s in enumerate(selected_loop_candidates):
-        decision, found = find_candidate_in_set( s,  manual_loop_candidates, 200, 200 )
+        decision, found = find_candidate_in_set( s,  manual_loop_candidates, 20, 20 )
         status_str = 'find '+ str(s)+ 'in set {manual_candidates}? FOUND:'+ str( decision )+ str(found)
         print '[%d of %d]' %(enum_s, len(selected_loop_candidates)), status_str
         if decision > 0 :
             a += decision
 
-        if BASE is not None: #imshow this pair
+        if BASE1 is not None: #imshow this pair
             __im1 = cv2.imread( BASE+'/%d.jpg' %(s[0]) )
             __im2 = cv2.imread( BASE+'/%d.jpg' %(s[1]) )
 
@@ -378,6 +379,16 @@ def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=No
             cv2.putText(__status_im,status_str, (10,15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_color )
             cv2.putText(__status_im, "       ^^^^^of set {selected_loop_candidates}", (10,35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_color )
 
+            if found: # if this was found in also show the `found` im pair
+                x__im1 = cv2.imread( BASE+'/%d.jpg' %(found[0]) )
+                cv2.putText(x__im1, str(found[0]), (10,35), cv2.FONT_HERSHEY_SIMPLEX, 1.5, txt_color )
+                x__im2 = cv2.imread( BASE+'/%d.jpg' %(found[1]) )
+                cv2.putText(x__im2, str(found[1]), (10,35), cv2.FONT_HERSHEY_SIMPLEX, 1.5, txt_color )
+                x__im1_im2 = cv2.resize( np.hstack((x__im1,x__im2)), (0,0), fx=0.5, fy=0.5 )
+                cv2.putText(x__im1_im2, "step-1:this pair was marked by human", (10,65), cv2.FONT_HERSHEY_SIMPLEX, .5, (0,255,255) )
+                __status_im = np.vstack( (__status_im, x__im1_im2 ) )
+
+
 
             # cv2.imshow( '__im1_im2', __im1_im2 )
             cv2.imshow( 'selected_loop_candidates__im1_im2', np.vstack( (__im1_im2, __status_im) ) )
@@ -385,29 +396,31 @@ def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=No
             key = cv2.waitKey(0)
             if key == ord( 'q' ):
                 cv2.destroyWindow( 'selected_loop_candidates__im1_im2')
-                BASE=None
+                BASE1=None
 
-    if BASE is not None:
+    if BASE1 is not None:
         cv2.destroyWindow( 'selected_loop_candidates__im1_im2')
 
 
 
     # Step - 2
     # Loop thru `manual_loop_candidates`
+    BASE2 = BASE
     print 'Step-2: Loop thru `manual_loop_candidates`'
     b = 0
     for enum_s,s in enumerate( manual_loop_candidates ):
-        decision, found = find_candidate_in_set( s,  selected_loop_candidates, 200, 200 )
+        decision, found = find_candidate_in_set( s,  selected_loop_candidates, 120, 120 )
         status_str = 'find '+ str(s) + 'in set {selected_loop_candidates}? FOUND: '+ str(decision)+ str(found)
         print '[%d of %d]' %( enum_s, len( manual_loop_candidates) ), status_str
         if decision > 0:
             b += decision
 
-        if BASE is not None: #imshow this pair
+        if BASE2 is not None: #imshow this pair
             __im1 = cv2.imread( BASE+'/%d.jpg' %(s[0]) )
             __im2 = cv2.imread( BASE+'/%d.jpg' %(s[1]) )
 
             __im1_im2 = cv2.resize( np.hstack((__im1,__im2)), (0,0), fx=0.5, fy=0.5 )
+            cv2.putText(__im1_im2, "step-2:this pair was marked by human", (10,65), cv2.FONT_HERSHEY_SIMPLEX, .5, (0,255,255) )
             __status_im = np.zeros( (50, __im1_im2.shape[1], 3), dtype='uint8' )
             if found:
                 txt_color = (0,255,0)
@@ -416,15 +429,23 @@ def compare_with_manual( T , manual_loop_candidates_json_fname, dump_file_ptr=No
             cv2.putText(__status_im,status_str, (10,15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_color )
             cv2.putText(__status_im, "       ^^^^^of set {manual_loop_candidates}", (10,35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, txt_color )
 
+            if found: # if this was found in also show the `found` im pair
+                x__im1 = cv2.imread( BASE+'/%d.jpg' %(found[0]) )
+                cv2.putText(x__im1, str(found[0]), (10,35), cv2.FONT_HERSHEY_SIMPLEX, 1.5, txt_color )
+                x__im2 = cv2.imread( BASE+'/%d.jpg' %(found[1]) )
+                cv2.putText(x__im2, str(found[1]), (10,35), cv2.FONT_HERSHEY_SIMPLEX, 1.5, txt_color )
+                x__im1_im2 = cv2.resize( np.hstack((x__im1,x__im2)), (0,0), fx=0.5, fy=0.5 )
+                __status_im = np.vstack( (__status_im, x__im1_im2 ) )
+
             # cv2.imshow( '__im1_im2', __im1_im2 )
             cv2.imshow( 'manual_loop_candidates__im1_im2', np.vstack( (__im1_im2, __status_im) ) )
             print '[in compare with manual/step2] any key to continue'
             key = cv2.waitKey(0)
             if key == ord('q'):
                 cv2.destroyWindow( 'manual_loop_candidates__im1_im2')
-                BASE=None
+                BASE2=None
 
-    if BASE is not None:
+    if BASE2 is not None:
         cv2.destroyWindow( 'manual_loop_candidates__im1_im2')
 
 

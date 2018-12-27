@@ -564,8 +564,9 @@ int stereo_demo() {
 int stereo_demo_easy()
 {
     ElapsedTime timer;
-    const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/";
+    // const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/";
     // const std::string BASE = "/Bulk_Data/ros_bags/bluefox_stereo/calib/leveled_cam_sampled/";
+    const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_seng3/";
 
     //--------- Intrinsics load
     camodocal::CameraPtr left_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.0.yaml");
@@ -601,16 +602,16 @@ int stereo_demo_easy()
 
     int frame_id = 1005;
     //----------------- load images_raw for left and right
-    // for( frame_id=0; frame_id < 2500 ;  frame_id++ )
-    //{
+    for( frame_id=0; frame_id < 2500 ;  frame_id++ )
+    {
     cout << "READ IMAGE " << frame_id << endl;
     cv::Mat imleft_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+".jpg", 0 );
     cv::Mat imright_raw =  cv::imread( BASE+"/"+std::to_string(frame_id)+"_1.jpg", 0 );
     // cv::Mat imleft_raw =  cv::imread( BASE+"/cam0_"+std::to_string(frame_id)+".png",0 );
     // cv::Mat imright_raw = cv::imread( BASE+"/cam1_"+ std::to_string(frame_id)+".png",0 );
 
-    // if( imleft_raw.empty() || imright_raw.empty() )
-        // continue;
+    if( imleft_raw.empty() || imright_raw.empty() )
+        continue;
 
     //------------------- stereogeom->get3dpoints_from_raw_images()
     //      can use one of the options depending on the need.
@@ -684,7 +685,7 @@ int stereo_demo_easy()
     //-------------------- visualize 3d points with rviz
 
     cv::waitKey(0);
-    //}
+    }
 
 
 
@@ -694,6 +695,7 @@ int stereo_demo_easy()
 int monocular_demo()
 {
     const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_multi_loops_in_lab/";
+
 
     // Abstract Camera
     camodocal::CameraPtr m_camera = camodocal::CameraFactory::instance()->generateCameraFromYamlFile(BASE+"/cameraIntrinsic.0.yaml");

@@ -14,7 +14,10 @@ from simplistic_experiment import load_calc_net, get_calc_descriptor
 
 #------------ Load log.json
 # BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
-BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
+# BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
+# BASE = '/Bulk_Data/_tmp_cerebro/mynt_seng3/'
+BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
+
 
 LOG_FILE_NAME = BASE+'/log.json'
 print 'Open file: ', LOG_FILE_NAME
@@ -23,9 +26,9 @@ with open(LOG_FILE_NAME) as data_file:
 
 
 #------------ Init AlexNet/calc
-# model_type = 'caffemodel_calc_descriptor'
-# net = load_calc_net()
-# FN = get_calc_descriptor
+model_type = 'caffemodel_calc_descriptor'
+net = load_calc_net()
+FN = get_calc_descriptor
 
 # model_type = 'caffemodel_alexnet_descriptor'
 # net = load_alex_net()
@@ -33,10 +36,10 @@ with open(LOG_FILE_NAME) as data_file:
 
 
 #----- Gaussian Random Matrix
-model_type = 'caffemodel_alexnet_descriptor_GRM'
-net = load_alex_net()
-FN = get_alexnet_descriptor
-M = np.random.normal( 0,1, (4096,64896) )
+# model_type = 'caffemodel_alexnet_descriptor_GRM'
+# net = load_alex_net()
+# FN = get_alexnet_descriptor
+# M = np.random.normal( 0,1, (4096,64896) )
 
 netvlad_desc = []
 netvlad_at_i = []

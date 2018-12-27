@@ -49,7 +49,11 @@ using json = nlohmann::json;
 // const std::string BASE = "/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/";
 
 // const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/";
-const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/";
+// const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/";
+// const std::string BASE = "/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/";
+// const std::string BASE = "/Bulk_Data/_tmp_cerebro/mynt_seng3/";
+const std::string BASE = "/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/";
+
 
 
 // #define __place_recog_dbow3_cpp_loadFeatures( msg ) msg

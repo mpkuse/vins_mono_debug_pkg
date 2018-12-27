@@ -66,7 +66,7 @@ def filter_candidates_lt_thresh( T, TH ):
 #         return preds
 
 if __name__ == "__main__":
-    # BASE = '/Bulk_Data/_tmp/'
+    BASE = '/Bulk_Data/_tmp/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
@@ -86,7 +86,9 @@ if __name__ == "__main__":
     # BASE = '/Bulk_Data/_tmp_cerebro/mynt_pinhole_1loop_in_lab/'
     # BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
 
-    BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/mynt_seng3/'
+    # BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
 
 
 
@@ -132,7 +134,7 @@ if __name__ == "__main__":
         #
         # Loops over all images and precomputes their netvlad vector (or read the .npz file)
         #
-        if False: #making this to false will load npz files which contain the pre-computes descriptors.
+        if True: #making this to false will load npz files which contain the pre-computes descriptors.
             #
             # Init Keras Model - NetVLAD / Enable Service
             #
@@ -181,8 +183,9 @@ if __name__ == "__main__":
             np.savez_compressed( fname, netvlad_desc=netvlad_desc, netvlad_at_i=netvlad_at_i)
             DESCRIPTOR_STR = 'from server model_type='+rcvd_.model_type
         else:
-            fname = BASE+'/mobilenet_conv7_allpairloss.npz'
+            # fname = BASE+'/mobilenet_conv7_allpairloss.npz'
             # fname = BASE + '/mobilenet_conv7_quash_chnls_tripletloss2.npz'
+            # fname = BASE + '/mobilenet_conv7_quash_chnls_allpairloss.npz'
             # fname = BASE+'/block5_pool_k16_allpairloss.npz'
             # fname = BASE+'/relja_matlab_model.npz'
             # fname = BASE+'/caffemodel_calc_descriptor.npz'
@@ -213,7 +216,7 @@ if __name__ == "__main__":
                 if i < 150: #don't lookup for first few frames
                     continue
 
-                if i %100 == 0:
+                if i %500 == 0:
                     print ' < D[0:%d], D[i] > of %d' %(i, netvlad_desc.shape[0])
 
                 DOT = np.dot( D[0:i-145,:], D[i,:] ) # compare D_live[i] will all the memory
@@ -243,10 +246,10 @@ if __name__ == "__main__":
 
     else:
         # Load the candidates from json file
-        # loopcandidate_json_fname = BASE+'/loopcandidates_ibow_lcd.json'
+        loopcandidate_json_fname = BASE+'/loopcandidates_ibow_lcd.json'
         # loopcandidate_json_fname = BASE+'/loopcandidates_dbow.json'
         # loopcandidate_json_fname = BASE+'/loopcandidates_liverun.json'
-        loopcandidate_json_fname = BASE+'/loopcandidates_manually_marked.json'
+        # loopcandidate_json_fname = BASE+'/loopcandidates_manually_marked.json'
         DESCRIPTOR_STR = 'loopcandidate_json_fname='+'/'.join(loopcandidate_json_fname.split('/')[-2:])
 
         print 'LOAD file: ', loopcandidate_json_fname
@@ -255,8 +258,8 @@ if __name__ == "__main__":
 
         T = []
         for l in loopcandidate__data:
-            # T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
-            T.append(  ( l['global_a'], l['global_b'], l['score'] ) )
+            T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
+            # T.append(  ( l['global_a'], l['global_b'], l['score'] ) )
         # code.interact( local=locals() )
         # quit()
 
@@ -281,7 +284,7 @@ if __name__ == "__main__":
     print_msg = True
     while not rospy.is_shutdown():
         if do_filter_candidates%do_filter_candidates_len == 0:
-            S = filter_candidates( T, TH=TH, locality=8 )
+            S = filter_candidates( T, TH=TH, locality=25 )
         if do_filter_candidates%do_filter_candidates_len == 1:
             S = filter_candidates_gt_thresh( T, TH=TH )
         if do_filter_candidates%do_filter_candidates_len == 2:

@@ -26,8 +26,11 @@ import os.path
 
 # BASE = '/Bulk_Data/_tmp_cerebro/mynt_drone_fly_area_loopy/'
 # BASE = '/Bulk_Data/_tmp_cerebro/mynt_pinhole_1loop_in_lab/'
-# BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
-BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
+BASE = '/Bulk_Data/_tmp_cerebro/mynt_coffee-shop/'
+# BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
+# BASE = '/Bulk_Data/_tmp_cerebro/mynt_seng3/'
+# BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
+
 
 # Step-0:
 LOG_FILE_NAME = BASE+'/log.json'
@@ -46,6 +49,8 @@ for i in range( len(data['DataNodes']) ):
     c = data['DataNodes'][i]['isPoseAvailable']
     d = data['DataNodes'][i]['isPtCldAvailable']
 
+    if i % 1000 == 0:
+        print '[%d of %d]' %(i,len(data['DataNodes']) )
 
     if not ( a==1 and b==1 and c==1 and d==1 ): #only process keyframes which have pose and ptcld info
         continue
@@ -67,21 +72,22 @@ for i in range( len(data['DataNodes']) ):
 # Step-1:
 
 print '============Step-1: Annotate each frame of the sequence with SegmentIds'
-if not os.path.isfile(BASE+'/loopcandidates_manually_marked_detailed.json'): #make this to false if you want to load file with seq
+# if not os.path.isfile(BASE+'/loopcandidates_manually_marked_detailed.json'): #make this to false if you want to load file with seq
+if True:
     scene_id = 0
     JSON_OBH = {}
     JSON_OBH['scene_seq_id'] = [] # scene ids for each frame
     for i in range( len( idx_at ) ):
-        # fname = KITTI_BASE+'/%06d.jpg' %(i)
-        # print 'READ: ', fname
-        # im = cv2.imread( fname )
         im = image_at[ i ]
         idx = idx_at[ i ]
         print 'idx=', idx, '::: ', i, ' of ', len( idx_at ), '  current_scene_id=', scene_id
-        cv2.imshow( 'im', im )
-        key = cv2.waitKey(0)
-        print 'press <space> to continue. press n to start new scene at this location'
-        if key == ord( 'n' ):
+        # cv2.imshow( 'im', im )
+        # key = cv2.waitKey(0)
+        # print 'press <space> to continue. press n to start new scene at this location'
+        # if key == ord( 'n' ):
+        #     scene_id += 1
+
+        if i>0 and i%10 == 0: #new scene id ever N frames.
             scene_id += 1
 
         JSON_OBH['scene_seq_id'].append( scene_id )
@@ -90,7 +96,7 @@ if not os.path.isfile(BASE+'/loopcandidates_manually_marked_detailed.json'): #ma
     with open(BASE+'/loopcandidates_manually_marked_detailed.json', 'w') as outfile:
         # json.dumps(JSON_OBH, outfile, indent=4 )
         json.dump(JSON_OBH, outfile, indent=4)
-    cv2.destroyWindow('im')
+    # cv2.destroyWindow('im')
 
 else:
     print 'File with manual sequence annotations exisits, so will proceed to step-2'
@@ -147,7 +153,7 @@ for key0 in inv_S:
 
         position_key0 = VIO__w_T_i[ val0['start'] ][0:3,3] #poses[ val0['start']  ].reshape( (3,4) )[0:3,3]
         position_key1 = VIO__w_T_i[ val1['start'] ][0:3,3] #poses[ val1['start']  ].reshape( (3,4) )[0:3,3]
-        if key0 >= key1 or abs(key0 - key1)<2 or np.linalg.norm(position_key0-position_key1) > 6.  or abs(val1['start'] - val0['start']) < 40:
+        if key0 >= key1 or abs(key0 - key1)<20 or np.linalg.norm(position_key0-position_key1) > 9.  or abs(val1['start'] - val0['start']) < 40:
             continue
 
         print '%d [%d,%d] <---> %d [%d,%d] match?(y,n). Total segs=%d' %(key0, val0['start'], val0['end'],  key1, val1['start'], val1['end'], len(inv_S.keys()) )
@@ -157,8 +163,14 @@ for key0 in inv_S:
         __mid0 = image_at[ mid_pt0  ] # cv2.imread(  KITTI_BASE+'/%06d.jpg' %(   (val0['start'] + val0['end'] )/2   ) )
         __mid1 = image_at[ mid_pt1  ] #cv2.imread(  KITTI_BASE+'/%06d.jpg' %(   (val1['start'] + val1['end'] )/2   ) )
 
-        cv2.imshow( '0', __mid0  )
-        cv2.imshow( '1', __mid1  )
+        cv2.putText(__mid0, str( idx_at[mid_pt0] ), (10,35), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,255,0) )
+        cv2.putText(__mid1, str( idx_at[mid_pt1] ), (10,35), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,255,0) )
+
+
+        to_display = np.hstack( (__mid0, __mid1) )
+        cv2.imshow( 'to_display', cv2.resize(to_display, (0,0), fx=0.5, fy=0.5) )
+        # cv2.imshow( '0', __mid0  )
+        # cv2.imshow( '1', __mid1  )
 
         key = cv2.waitKey(0)
         if key == ord('y'):
@@ -173,12 +185,12 @@ for key0 in inv_S:
             # matching_pairs_T.append( ((val0['start'] + val0['end'] )/2,    val1['end'] , np.random.random() ) )
             #
             # matching_pairs_T.append( (val0['start']  ,   (val1['start'] + val1['end'] )/2, np.random.random() ) )
-            # matching_pairs_T.append( (val0['start'],    val1['start'] ,                  np.random.random() ) )
+            matching_pairs_T.append( (val0['start'],    val1['start'] ,                  np.random.random() ) )
             # matching_pairs_T.append( (val0['start'],    val1['end'] , np.random.random() ) )
             #
             # matching_pairs_T.append( ( val0['end'] ,   (val1['start'] + val1['end'] )/2, np.random.random() ) )
             # matching_pairs_T.append( ( val0['end'] ,    val1['start'] ,                  np.random.random() ) )
-            # matching_pairs_T.append( ( val0['end'] ,    val1['end'] , np.random.random() ) )
+            matching_pairs_T.append( ( val0['end'] ,    val1['end'] , np.random.random() ) )
 
 
 # to json
@@ -186,10 +198,15 @@ JSON_OBH['candidates'] = []
 JSON_OBH['meta'] = "manually marked"
 for match in matching_pairs_T:
     u = {}
-    u['global_a'] = idx_at[ match[1] ]
-    u['global_b'] = idx_at[ match[0] ]
-    u['score'] = match[2]
-    JSON_OBH['candidates'].append( u )
+    try:
+        u['global_a'] = idx_at[ match[1] ]
+        u['global_b'] = idx_at[ match[0] ]
+        u['score'] = match[2]
+        JSON_OBH['candidates'].append( u )
+    except:
+        print 'gave an exception here, skipping match'
+        print match
+        pass
 
 print 'Writing ', BASE+'/loopcandidates_manually_marked_detailed.json'
 with open(BASE+'/loopcandidates_manually_marked_detailed.json', 'w') as outfile:
