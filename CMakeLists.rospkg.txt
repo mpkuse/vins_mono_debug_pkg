@@ -226,6 +226,7 @@ add_executable( test_theia src_geometry/test_theia.cpp  )
 add_executable( test_theia_ransac src_geometry/test_theia_ransac.cpp  )
 
 
+
 add_executable( camodocal_projection_test
                     src_geometry/camodocal_projection_test.cpp
                     ${CamodocalCameraModelSources}
@@ -245,6 +246,11 @@ add_executable( theia_ptcld_from_stereo
                     ${KuseUtilSources}
                     ${CamodocalCameraModelSources}
                 )
+add_executable( klens-stereo-depth klens-try/stereo-depth.cpp
+                        ${KuseUtilSources}
+                        ${CamodocalCameraModelSources}
+                )
+
 
 add_executable( test_disjointset
             src_place_recog/test_disjointset.cpp
@@ -312,7 +318,11 @@ target_link_libraries( theia_ptcld_from_stereo
         ${THEIA_LIBRARIES}
         ${OpenCV_LIBRARIES}
         )
-
+        target_link_libraries( klens-stereo-depth
+                ${catkin_LIBRARIES}
+                ${THEIA_LIBRARIES}
+                ${OpenCV_LIBRARIES}
+                )
 target_link_libraries( test_disjointset
         ${catkin_LIBRARIES}
         )
