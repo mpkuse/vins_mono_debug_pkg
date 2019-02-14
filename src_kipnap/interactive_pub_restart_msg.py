@@ -9,7 +9,7 @@ import cv2
 
 pub_restart = rospy.Publisher('/feature_tracker/restart', Bool, queue_size=10)
 pub_rcvd = rospy.Publisher('/feature_tracker/rcvd_flag', Bool, queue_size=10)
-rospy.init_node('talker', anonymous=True)
+rospy.init_node('interactive_bool_publish', anonymous=True)
 rate = rospy.Rate(10) # 10hz
 
 im = np.zeros( (100,500), dtype='uint8' )
