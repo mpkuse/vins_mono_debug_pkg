@@ -147,8 +147,14 @@ if __name__ == "__main__":
                 print 'failed', e
             print 'connected to ros-service'
 
+            #try the 0th image
+            im = cv2.imread( BASE+'%d.jpg' %(0) )
+            image_msg = CvBridge().cv2_to_imgmsg( im )
+            rcvd_ = service_proxy( image_msg, 24 )
+
             netvlad_desc = []
             netvlad_at_i = []
+            print ' len(data[\'DataNodes\'])=',  len(data['DataNodes'])
             for i in range( len(data['DataNodes']) ):
                 a = data['DataNodes'][i]['isKeyFrame']
                 b = data['DataNodes'][i]['isImageAvailable']
@@ -156,10 +162,11 @@ if __name__ == "__main__":
                 d = data['DataNodes'][i]['isPtCldAvailable']
 
 
-                if not ( a==1 and b==1 and c==1 and d==1 ): #only process keyframes which have pose and ptcld info
+                if not ( a==1 and b==1 and c==1  ): #only process keyframes which have pose and ptcld info
                     continue
 
                 im = cv2.imread( BASE+'%d.jpg' %(i) )
+
 
                 start_time = time.time()
                 print '---', i , ' of ', len(data['DataNodes']), '\n'

@@ -83,6 +83,25 @@ void MiscUtils::dmatch_2_eigen( const std::vector<cv::KeyPoint>& kp1, const std:
 }
 
 
+void MiscUtils::cvmatpts_2_eigen( const cv::Mat& mat, MatrixXd& out_e )
+{
+    assert( mat.type == CV_32FC2 );
+    assert( mat.cols == 1 && mat.mat.channels()==2 && mat.rows > 0 );
+
+    out_e = MatrixXd::Zero( 2, mat.rows );
+    for( int i=0 ; i<mat.rows ; i++ )
+    {
+        cv::Vec2f ln = mat.at<cv::Vec2f>(i,0);
+        float _u = ln[0];
+        float _v = ln[1];
+
+        out_e(0,i) = _u;
+        out_e(1,i) = _v;
+        // cout << _u << "," << _v << endl;
+    }
+}
+
+
 void MiscUtils::plot_point_sets( const cv::Mat& im, const MatrixXd& pts_set, cv::Mat& dst,
                                         const cv::Scalar& color, bool enable_keypoint_annotation, const string& msg )
 {

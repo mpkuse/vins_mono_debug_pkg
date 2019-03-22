@@ -353,3 +353,19 @@ target_link_libraries( camera_geometry_relativepose_at_loopdetections
   ${THEIA_LIBRARIES}
 
 )
+
+
+##### Exp with Optical Flow
+add_executable( opt_flow
+            src_optical_floww/opt_flow.cpp
+            #${CamodocalCameraModelSources}
+            ${KuseUtilSources}
+        )
+
+
+target_link_libraries( opt_flow
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  #${CERES_LIBRARIES}
+  #${THEIA_LIBRARIES}
+)

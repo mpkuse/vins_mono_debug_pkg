@@ -41,6 +41,9 @@ public:
                                 MatrixXd& M1, MatrixXd& M2,
                                 bool make_homogeneous=true
                             );
+
+    // Given a cv::Mat with ``shape=100,1,2	dtype=32FC2``, converts to MatrixXd 2x100.
+    static void cvmatpts_2_eigen( const cv::Mat& mat, MatrixXd& out_e );
     //---------------------------- Conversions ---------------------------------//
 
 
