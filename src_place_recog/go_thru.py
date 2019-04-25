@@ -7,7 +7,7 @@ import cv2
 import json
 
 
-BASE = '/Bulk_Data/_tmp'
+BASE = '/Bulk_Data/_tmp_saved_seq/mynt_concourse-seng4'
 
 
 LOG_FILE_NAME = BASE+'/log.json'

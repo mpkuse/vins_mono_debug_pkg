@@ -66,6 +66,7 @@ def filter_candidates_lt_thresh( T, TH ):
 #         return preds
 
 if __name__ == "__main__":
+    # BASE = '/Bulk_Data/_tmp_saved_seq/mynt_concourse-seng4/'
     BASE = '/Bulk_Data/_tmp/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/'
@@ -110,8 +111,16 @@ if __name__ == "__main__":
             # w_t_c = np.array( [0,0,0] )
             pass # use the previously known pose
         else:
-            w_T_c = np.array( data['DataNodes'][i]['w_T_c']['data']).reshape( (4,4) )
-            w_t_c = w_T_c[0:3,3]
+            try:
+                w_T_c = np.array( data['DataNodes'][i]['w_T_c']['data']).reshape( (4,4) )
+                w_t_c = w_T_c[0:3,3]
+            except:
+                # if it is formatted like a string :
+                xstt = data['DataNodes'][i]['w_T_c']['data'].replace( '\t', '' ).replace( '\n', '' ).replace(' ', '' )
+                w_T_c = np.fromstring( xstt, sep=',' ).reshape( (4,4) )
+                w_t_c = w_T_c[0:3,3]
+
+                # code.interact( local=locals() )
 
         VIO__w_t_i.append( w_t_c )
 
@@ -148,7 +157,7 @@ if __name__ == "__main__":
             print 'connected to ros-service'
 
             #try the 0th image
-            im = cv2.imread( BASE+'%d.jpg' %(0) )
+            im = cv2.imread( BASE+'%d.jpg' %(0), cv2.IMREAD_GRAYSCALE )
             image_msg = CvBridge().cv2_to_imgmsg( im )
             rcvd_ = service_proxy( image_msg, 24 )
 
@@ -165,13 +174,13 @@ if __name__ == "__main__":
                 if not ( a==1 and b==1 and c==1  ): #only process keyframes which have pose and ptcld info
                     continue
 
-                im = cv2.imread( BASE+'%d.jpg' %(i) )
-
+                im = cv2.imread( BASE+'%d.jpg' %(i), cv2.IMREAD_GRAYSCALE )
+                print 'im.shape=', im.shape
 
                 start_time = time.time()
                 print '---', i , ' of ', len(data['DataNodes']), '\n'
-                image_msg = CvBridge().cv2_to_imgmsg( im )
-                rcvd_ = service_proxy( image_msg, 24 )
+                image_msg = CvBridge().cv2_to_imgmsg( im,  'mono8' )
+                rcvd_ = service_proxy( image_msg, 241 )
                 netvlad_desc.append( rcvd_.desc )
                 netvlad_at_i.append( i )
                 print 'Done in %4.4fms' %( 1000. * (time.time() - start_time ) ),
@@ -198,6 +207,7 @@ if __name__ == "__main__":
             # fname = BASE+'/caffemodel_calc_descriptor.npz'
             # fname = BASE+'/caffemodel_alexnet_descriptor_GRM.npz'
             # fname = BASE+'/caffemodel_alexnet_descriptor.npz'
+            fname = BASE+'/K16_gray_training.npz'
             DESCRIPTOR_STR = 'from '+fname
 
             print 'Load ', fname
@@ -223,13 +233,14 @@ if __name__ == "__main__":
                 if i < 150: #don't lookup for first few frames
                     continue
 
-                if i %500 == 0:
-                    print ' < D[0:%d], D[i] > of %d' %(i, netvlad_desc.shape[0])
 
                 DOT = np.dot( D[0:i-145,:], D[i,:] ) # compare D_live[i] will all the memory
                 score  = np.max(DOT)
                 argmax = np.argmax( DOT )
-                #print 'Nearest neighobour of %d of live in db is %d (dotprodt = %4.4f)' %( netvlad_at_i[i], netvlad_at_i[argmax], score )
+                # print DOT
+                # print 'Nearest neighobour of %d of live in db is %d (dotprodt = %4.4f)' %( netvlad_at_i[i], netvlad_at_i[argmax], score )
+                if i %500 == 0:
+                    print ' < D[0:%d], D[i] > of %d' %(i, netvlad_desc.shape[0])
 
                 T.append( (netvlad_at_i[i], netvlad_at_i[argmax], score) )
 
