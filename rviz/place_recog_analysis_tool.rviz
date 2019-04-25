@@ -87,7 +87,10 @@ Visualization Manager:
       Marker Topic: /chatter
       Name: Marker
       Namespaces:
-        {}
+        hlt_loop_candidates_raw: true
+        loop_candidates_raw: true
+        vio: true
+        vio_text: true
       Queue Size: 100
       Value: true
     - Class: rviz/Image
@@ -138,7 +141,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 6.43283606
+      Distance: 77.8393097
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -152,10 +155,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.289797693
+      Pitch: 0.909797609
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 5.44356775
+      Yaw: 5.16856718
     Saved:
       - Class: rviz/Orbit
         Distance: 49.6446877

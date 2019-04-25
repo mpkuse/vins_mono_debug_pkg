@@ -163,7 +163,6 @@ def imshow_loopcandidates( T, BASE=None, VIO__w_t_i=None, pub=None ):
     assert( BASE is not None )
 
 
-
     # for i in range( 0,len(T)-3, 3 ):
     for i in range( 0, len(T) ):
         p0 = int(T[i][0])
@@ -181,7 +180,7 @@ def imshow_loopcandidates( T, BASE=None, VIO__w_t_i=None, pub=None ):
         cv2.putText(status, '%d<   (%4.6f)   >%d' %( p0, score, p1 ), (10,65), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
         im = np.concatenate( (im,status), axis=0 )
 
-        # TODO Try Feature Matching and score computation on these 2 images
+
 
         # Publish marker to highlight this pair on trajectory
         if VIO__w_t_i is not None and pub is not None:
@@ -191,13 +190,39 @@ def imshow_loopcandidates( T, BASE=None, VIO__w_t_i=None, pub=None ):
 
         # cv2.imshow( 'im', im )
         cv2.imshow( 'im_resized', cv2.resize( im, (0,0), fx=0.5, fy=0.5 ) ) # resize for better display
-        print 'Press <space> for next pair, <q> to exit this loop. <w> to save this image to BASE (%s)' %(BASE)
+        print 'Press <space> for next pair, \n\
+                     <q> to exit this loop. \n\
+                     <w> to save this image to BASE (%s)\n\
+                     <m> perform GMSMatcher on this pair\n\
+                     <n> Toggle gmsmatcher output' %(BASE)
         key = cv2.waitKey(0)
+        if key == ord( 'n' ):
+            imshowgms = not imshowgms
         if key == ord('q'):
             break
         if key == ord('w'):
             print 'Writing Image: ', BASE+'/loopcandidate_%d_%d.jpg' %(p0,p1)
             cv2.imwrite( BASE+'/loopcandidate_%d_%d.jpg' %(p0,p1), im )
+        if key == ord( 'm' ) :
+            from gms_matcher import GmsMatcher, DrawingType
+            print 'ORB_create;Setup Bruteforce Marcher;Do GMS;Draw'
+            orb = cv2.ORB_create(5000)
+            orb.setFastThreshold(0)
+            if cv2.__version__.startswith('3'):
+                matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
+            else:
+                matcher = cv2.BFMatcher_create(cv2.NORM_HAMMING)
+            gms = GmsMatcher(orb, matcher)
+
+            matches = gms.compute_matches(im0, im1)
+            gms_draw_output = gms.draw_matches(im0, im1, DrawingType.COLOR_CODED_POINTS_X)
+            print 'press any key to continue'
+            # cv2.imshow( 'gms_draw_output', gms_draw_output )
+            cv2.imshow( 'gms_draw_output', cv2.resize( gms_draw_output, (0,0), fx=0.5, fy=0.5 ) )
+
+            cv2.waitKey(0)
+            cv2.destroyWindow( 'gms_draw_output' )
+
 
     cv2.destroyWindow('im')
     cv2.destroyWindow('im_resized')

@@ -67,6 +67,8 @@ def filter_candidates_lt_thresh( T, TH ):
 
 if __name__ == "__main__":
     # BASE = '/Bulk_Data/_tmp_saved_seq/mynt_concourse-seng4/'
+    # BASE = '/Bulk_Data/_tmp_saved_seq/mynt_pinhole_1loop_in_lab/'
+
     BASE = '/Bulk_Data/_tmp/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/'
