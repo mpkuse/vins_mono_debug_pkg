@@ -57,7 +57,7 @@ def make_line_marker(w_t_p0, w_t_p1):
 # VIO__w_t_i: position of each node.
 # max_n (optional): If this is None means publish all nodes and all candidates. If this is a number will publish upto that nodes. In this case will return image of last pair
 def publish_marker( pub, VIO__w_t_i, T, TH=0.92, max_n=None, BASE=None  ):
-
+    # print 'publish_marker()'
     if max_n is None:
         up_to = len(VIO__w_t_i)
     else:
@@ -66,16 +66,23 @@ def publish_marker( pub, VIO__w_t_i, T, TH=0.92, max_n=None, BASE=None  ):
     # Publish VIO
     m = make_marker()
     m.ns = 'vio'#+offsettxt
+    m.id = 0
     m.type = m.LINE_STRIP
     m.scale.x = 0.05
-    #print 'len(VIO__w_t_i) ', len(VIO__w_t_i), '   len(T) ', len(T), 'max_n ', str(up_to)
+    # print 'len(VIO__w_t_i) ', len(VIO__w_t_i), '   len(T) ', len(T), 'max_n ', str(up_to)
     for i, w_t_i in enumerate(VIO__w_t_i[:up_to] ):
-        m.points.append( Point( w_t_i[0], w_t_i[1], w_t_i[2] ) )  #plot nodes at x,y,z
+        m.points.append( Point( float(w_t_i[0]), float(w_t_i[1]), float(w_t_i[2]) ) )  #plot nodes at x,y,z
         # m.points.append( Point( w_t_i[0], w_t_i[2], i ) )           #plot nodes at x,z,frame#
+
+        # publish every 5000 poses. This is done because too large messages causes rviz to coredump.
+        if i%5000 == 0 and i>0 :
+            pub.publish( m )
+            m.points = []
+            m.id = int(i/5000 )+1
     pub.publish( m )
 
 
-    if True:
+    if False:
         # Publish VIO text
         m = make_marker()
         m.ns = 'vio_text'#+offsettxt
@@ -153,6 +160,22 @@ def publish_marker( pub, VIO__w_t_i, T, TH=0.92, max_n=None, BASE=None  ):
         return None
 
 
+def add_image_caption( im, txt ) :
+
+    caption_im_width = 30*len( str(txt).split( ';' ) )
+
+    if len(im.shape) == 3:
+        zer = np.zeros( [caption_im_width, im.shape[1], im.shape[2]], dtype='uint8' )
+    else:
+        if len(im.shape) == 2:
+            zer = np.zeros( [caption_im_width, im.shape[1]], dtype='uint8' )
+        else:
+            assert( False )
+
+
+    for e, tx in enumerate( str(txt).split( ';' ) ):
+        zer = cv2.putText(zer, str(tx), (3,20+30*e), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255) )
+    return np.concatenate( [im, zer] )
 
 
 # uses the global variable TH and KITTI_BASE.
@@ -168,7 +191,8 @@ def imshow_loopcandidates( T, BASE=None, VIO__w_t_i=None, pub=None ):
         p0 = int(T[i][0])
         p1 = int(T[i][1])
         score = T[i][2]
-        print '[imshow_loopcandidates:%d of %d]' %(i, len(T)), '%d<--(%4.2f)-->%d' %( p0, score, p1 )
+        info_string = '[imshow_loopcandidates:%d of %d]' %(i, len(T)) + '  %d<--(%4.2f)-->%d' %( p0, score, p1 )
+        print info_string
 
 
         im0 = cv2.imread( BASE+'/%d.jpg' %(p0) )
@@ -177,7 +201,8 @@ def imshow_loopcandidates( T, BASE=None, VIO__w_t_i=None, pub=None ):
 
         im = np.concatenate( (im0, blank_space.astype('uint8'), im1,), axis=1 )
         status = np.zeros( (120,im.shape[1],3)).astype('uint8')
-        cv2.putText(status, '%d<   (%4.6f)   >%d' %( p0, score, p1 ), (10,65), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
+        # cv2.putText(status, '%d<   (%4.6f)   >%d' %( p0, score, p1 ), (10,65), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
+        cv2.putText(status, info_string, (10,65), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
         im = np.concatenate( (im,status), axis=0 )
 
 
@@ -216,6 +241,7 @@ def imshow_loopcandidates( T, BASE=None, VIO__w_t_i=None, pub=None ):
 
             matches = gms.compute_matches(im0, im1)
             gms_draw_output = gms.draw_matches(im0, im1, DrawingType.COLOR_CODED_POINTS_X)
+            gms_draw_output = add_image_caption( gms_draw_output, 'matches_number = '+str(len(gms.gms_matches) ) )
             print 'press any key to continue'
             # cv2.imshow( 'gms_draw_output', gms_draw_output )
             cv2.imshow( 'gms_draw_output', cv2.resize( gms_draw_output, (0,0), fx=0.5, fy=0.5 ) )

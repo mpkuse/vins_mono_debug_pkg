@@ -15,11 +15,14 @@ from keras import backend as K
 from keras.engine.topology import Layer
 import keras
 import pprint
-from predict_utils import open_json_file, NetVLADLayer, change_model_inputshape
+from predict_utils import open_json_file, change_model_inputshape
+from predict_utils import NetVLADLayer, GhostVLADLayer
 
 import rospkg
 THIS_PKG_BASE_PATH = rospkg.RosPack().get_path('cerebro')
 
+from TerminalColors import bcolors
+tcol = bcolors()
 
 class SampleGPUComputer:
     def __init__(self):
@@ -310,7 +313,7 @@ class JSONModelImageDescriptor:
     This class loads the net structure from the json file, model.json and
     weights from core_model.??.keras.
     """
-    def __init__(self, im_rows=600, im_cols=960, im_chnls=3):
+    def __init__(self, kerasmodel_file, im_rows=600, im_cols=960, im_chnls=3):
         ## Build net
         from keras.backend.tensorflow_backend import set_session
         import tensorflow as tf
@@ -338,9 +341,14 @@ class JSONModelImageDescriptor:
         self.im_cols = int(im_cols)
         self.im_chnls = int(im_chnls)
 
-        LOG_DIR = '/models.keras/Apr2019/gray_conv6_K16__centeredinput/'
-        model_type = 'gray_conv6_K16__centeredinput'
-        model_load_itr = 500
+        LOG_DIR = '/'.join( kerasmodel_file.split('/')[0:-1] )
+        model_type = LOG_DIR.split('/')[-1]
+        # code.interact( local=locals() )
+
+        assert os.path.isdir( LOG_DIR ), "The LOG_DIR doesnot exist of there is a permission issue. LOG_DIR="+LOG_DIR
+        assert os.path.isfile(  LOG_DIR+'/model.json'  ), "model.json does not exist in LOG_DIR="+LOG_DIR+'. This file is needed to load the network architecture from json format. This file should have been created when you learned the model using script in github.com/mpkuse/cartwheel_train'
+
+
 
         #----- @ Load Model Structure from JSON
         # Load JSON formatted model
@@ -348,7 +356,7 @@ class JSONModelImageDescriptor:
         # print '======================='
         # pprint.pprint( json_string, indent=4 )
         # print '======================='
-        model = keras.models.model_from_json(str(json_string),  custom_objects={'NetVLADLayer': NetVLADLayer} )
+        model = keras.models.model_from_json(str(json_string),  custom_objects={'NetVLADLayer': NetVLADLayer, 'GhostVLADLayer':GhostVLADLayer} )
         old_input_shape = model._layers[0].input_shape
 
         model._layers[0]
@@ -358,10 +366,10 @@ class JSONModelImageDescriptor:
         print 'Writing Model Visual to: ', model_visual_fname
         keras.utils.plot_model( model, to_file=model_visual_fname, show_shapes=True )
 
-
         #----- @ Load Weights
-        model_fname = LOG_DIR+'/core_model.%d.keras' %(model_load_itr)
-        print 'Load model: ', model_fname
+        assert os.path.isfile( kerasmodel_file ), 'The model weights file doesnot exists or there is a permission issue.'+"kerasmodel_file="+kerasmodel_file
+        model_fname = kerasmodel_file
+        print tcol.OKGREEN, 'Load model: ', model_fname, tcol.ENDC
         model.load_weights(  model_fname )
 
 
@@ -424,14 +432,14 @@ class JSONModelImageDescriptor:
 
         u = self.model.predict( i__image )
 
-        print 'Descriptor Computed in %4.4fms' %( 1000. *(time.time() - start_time) ),
-        print '\tdesc.shape=', u.shape,
+        print tcol.HEADER, 'Descriptor Computed in %4.4fms' %( 1000. *(time.time() - start_time) ), tcol.ENDC
         print '\tinput_image.shape=', cv_image.shape,
-        print '\tinput image minmax=', np.min( i__image ), np.max( i__image ),
-        print '\tminmax=', np.min( u ), np.max( u ),
-        print '\tnorm=', np.linalg.norm(u[0]),
-        print '\tmodel_type=', self.model_type,
-        print '\tdtype=', cv_image.dtype
+        print '\tinput_image dtype=', cv_image.dtype
+        print tcol.OKBLUE, '\tinput image (to neuralnet) minmax=', np.min( i__image ), np.max( i__image ), tcol.ENDC
+        print '\tdesc.shape=', u.shape,
+        print '\tdesc minmax=', np.min( u ), np.max( u ),
+        print '\tnorm=', np.linalg.norm(u[0])
+        print '\tmodel_type=', self.model_type
 
 
 
@@ -448,7 +456,11 @@ rospy.init_node( 'whole_image_descriptor_compute_server' )
 fs_image_width = 752
 fs_image_height = 480
 fs_image_chnls = 1
-gpu_netvlad = JSONModelImageDescriptor( im_rows=fs_image_height, im_cols=fs_image_width, im_chnls=fs_image_chnls )
+# kerasmodel_file = '/models.keras/Apr2019/gray_conv6_K16__centeredinput/core_model.%d.keras' %(100)
+kerasmodel_file = '/models.keras/Apr2019/gray_conv6_K16Ghost1__centeredinput/core_model.%d.keras' %(500)
+
+gpu_netvlad = JSONModelImageDescriptor( kerasmodel_file=kerasmodel_file, im_rows=fs_image_height, im_cols=fs_image_width, im_chnls=fs_image_chnls )
+
 s = rospy.Service( 'whole_image_descriptor_compute', WholeImageDescriptorCompute, gpu_netvlad.handle_req  )
 print 'whole_image_descriptor_compute_server is running'
 rospy.spin()
@@ -508,7 +520,7 @@ def old_main():
     gpu_netvlad = NetVLADImageDescriptor( im_rows=fs_image_height, im_cols=fs_image_width )
     # gpu_netvlad = ReljaNetVLAD( im_rows=fs_image_height, im_cols=fs_image_width )
     s = rospy.Service( 'whole_image_descriptor_compute', WholeImageDescriptorCompute, gpu_netvlad.handle_req  )
-    print 'whole_image_descriptor_compute_server is running'
+    print tcol.OKGREEN, 'whole_image_descriptor_compute_server is running', tcol.ENDC
 
 
     # image = cv2.resize(  cv2.imread( '/app/lena.jpg'), (224,224) )

@@ -122,6 +122,7 @@ class GmsMatcher:
 
         mask, num_inliers = self.get_inlier_mask(False, False)
         print('Found', num_inliers, 'matches')
+        
 
         for i in range(len(mask)):
             if mask[i]:

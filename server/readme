@@ -1,3 +1,5 @@
 This folder contains ros server for computing image descriptor.
 
 it is functionally similar to one in cerebro but with fewer nitty grtties
+
+All the prediction related utils like custom layers can be found in predict_utils.py. A sample client in whole_image_descriptor_compute_client.py

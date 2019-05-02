@@ -29,6 +29,8 @@ from cv_bridge import CvBridge, CvBridgeError
 
 from unit_tools import publish_marker, imshow_loopcandidates, play_trajectory_with_loopcandidates
 
+from TerminalColors import bcolors
+tcol = bcolors()
 
 # returns selected loop candidates by locality heuristic and the threshold.
 # T = [ (p0, p1, score), .... ]
@@ -40,7 +42,8 @@ def filter_candidates( T, TH=0.92, locality=8 ):
         p1 = int(T[i][1])
         score = T[i][2]
 
-        if score > TH and abs(T[i+1][1] - p1) < locality and abs(T[i+2][1] - p1) < locality: # and T[i+1][2] > TH and T[i+2][2] > TH:
+        # if score > TH and abs(T[i+1][1] - p1) < locality and abs(T[i+2][1] - p1) < locality: # and T[i+1][2] > TH and T[i+2][2] > TH:
+        if score > TH and score < 0.99 and abs(T[i+1][1] - p1) < locality and abs(T[i+2][1] - p1) < locality: # and T[i+1][2] > TH and T[i+2][2] > TH:
             S.append( (p0, p1, score) )
     return S
 
@@ -68,8 +71,9 @@ def filter_candidates_lt_thresh( T, TH ):
 if __name__ == "__main__":
     # BASE = '/Bulk_Data/_tmp_saved_seq/mynt_concourse-seng4/'
     # BASE = '/Bulk_Data/_tmp_saved_seq/mynt_pinhole_1loop_in_lab/'
+    BASE = '/Bulk_Data/_tmp_saved_seq/mynt_mall0/'
 
-    BASE = '/Bulk_Data/_tmp/'
+    # BASE = '/Bulk_Data/_tmp/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_multiple_loops_in_lab/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_loopy_drone_fly_area/'
     # BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
@@ -91,7 +95,7 @@ if __name__ == "__main__":
 
     # BASE = '/Bulk_Data/_tmp_cerebro/ptgrey_floorg_lsk/'
     # BASE = '/Bulk_Data/_tmp_cerebro/mynt_seng3/'
-    # BASE = '/Bulk_Data/_tmp_cerebro/bb4_long_lab_traj/'
+    # BASE = '/Bulk_Data/_tmp_saved_seq/bb4_long_lab_traj/'
 
 
 
@@ -140,12 +144,26 @@ if __name__ == "__main__":
 
     DESCRIPTOR_STR = ""
 
+
+    #--------NOTE--------#
+    #   `FLAG_A` and `FLAG_B` can be set to {True or False} to achieve desired behaviour
+    # if FLAG_A:
+    #   if FLAG_B :
+    #       compute whole-image-descriptors of all images
+    #   else :
+    #        load whole-image-descriptors from file
+    #   do nearest-neighbour-search to produce raw loop candidates
+    # else:
+    #   load loop candidates from file
+    #
+    #------END NOTE -----#
+
     # Create Loop Candidates or Load file loopcandidates_?_.json
     if True:
         #
         # Loops over all images and precomputes their netvlad vector (or read the .npz file)
         #
-        if True: #making this to false will load npz files which contain the pre-computes descriptors.
+        if False: #making this to false will load npz files which contain the pre-computes descriptors.
             #
             # Init Keras Model - NetVLAD / Enable Service
             #
@@ -209,7 +227,8 @@ if __name__ == "__main__":
             # fname = BASE+'/caffemodel_calc_descriptor.npz'
             # fname = BASE+'/caffemodel_alexnet_descriptor_GRM.npz'
             # fname = BASE+'/caffemodel_alexnet_descriptor.npz'
-            fname = BASE+'/K16_gray_training.npz'
+            # fname = BASE+'/K16_gray_training.npz'
+            fname = BASE+'/gray_conv6_K16__centeredinput.npz'
             DESCRIPTOR_STR = 'from '+fname
 
             print 'Load ', fname
@@ -231,45 +250,100 @@ if __name__ == "__main__":
         D = netvlad_desc
         T = []
         flag_show_image = True
-        for i in range( netvlad_desc.shape[0] ):
-                if i < 150: #don't lookup for first few frames
+
+        METHOD_OF_COMPARISON = 1 # use this for simple DIY comparison with dot product and max candidate of each
+        METHOD_OF_COMPARISON = 2 # Faiss-FlatIndex
+
+        if METHOD_OF_COMPARISON == 1:
+            for i in range( netvlad_desc.shape[0] ):
+                    if i < 150: #don't lookup for first few frames
+                        continue
+
+
+                    DOT = np.dot( D[0:i-145,:], D[i,:] ) # compare D_live[i] will all the memory
+                    score  = np.max(DOT)
+                    argmax = np.argmax( DOT )
+                    # print DOT
+                    # print 'Nearest neighobour of %d of live in db is %d (dotprodt = %4.4f)' %( netvlad_at_i[i], netvlad_at_i[argmax], score )
+                    if i %500 == 0:
+                        print ' < D[0:%d], D[i] > of %d' %(i, netvlad_desc.shape[0])
+
+                    T.append( (netvlad_at_i[i], netvlad_at_i[argmax], score) )
+
+                    if flag_show_image:
+                        plot_handle.create()
+                        cv2.imshow( 'plot', plot_handle.plot( DOT ).astype('uint8') )
+
+                        __im = cv2.imread( BASE+'%d.jpg' %(netvlad_at_i[i]) )
+                        cv2.imshow( '__im', cv2.resize(__im, (0,0), fx=0.5, fy=0.5 ) )
+
+
+                        key = cv2.waitKey(5)
+                        if key == ord('q'):
+                            print 'Will do the do products but not display images; doing the dot products now, have patience.'
+                            flag_show_image = False
+                            cv2.destroyWindow( '__im' )
+                            cv2.destroyWindow( 'plot')
+            # cv2.destroyWindow( 'plot' )
+
+        if METHOD_OF_COMPARISON == 2:
+            import faiss
+            index = faiss.IndexFlatIP( netvlad_desc.shape[1] )
+            # index = faiss.IndexFlat( netvlad_desc.shape[1] ) #this has distance the metric and not the usual inner product, so for correct usage will have to keep candidates with thresholds less than X
+            # index = faiss.IndexLSH( netvlad_desc.shape[1], 1000 )
+            index.train( D.astype('float32') )
+            for i in range( netvlad_desc.shape[0] ):
+            # for i in range( 10 ):
+                print tcol.HEADER, '---', i , ' of ', netvlad_desc.shape[0], tcol.ENDC
+                if i-150 >= 0:
+                    start_t = time.time()
+                    print 'add netvlad_desc[', i-150, ']', '\t done in %4.4fms' %(1000.*(time.time() - start_t))
+                    index.add( np.expand_dims( netvlad_desc[i-150], 0 ).astype('float32') )
+
+                if i<200:
+                    print 'i less than 200. not seen enough'
                     continue
 
-
-                DOT = np.dot( D[0:i-145,:], D[i,:] ) # compare D_live[i] will all the memory
-                score  = np.max(DOT)
-                argmax = np.argmax( DOT )
-                # print DOT
-                # print 'Nearest neighobour of %d of live in db is %d (dotprodt = %4.4f)' %( netvlad_at_i[i], netvlad_at_i[argmax], score )
-                if i %500 == 0:
-                    print ' < D[0:%d], D[i] > of %d' %(i, netvlad_desc.shape[0])
-
-                T.append( (netvlad_at_i[i], netvlad_at_i[argmax], score) )
-
-                if flag_show_image:
-                    plot_handle.create()
-                    cv2.imshow( 'plot', plot_handle.plot( DOT ).astype('uint8') )
-
-                    __im = cv2.imread( BASE+'%d.jpg' %(netvlad_at_i[i]) )
-                    cv2.imshow( '__im', cv2.resize(__im, (0,0), fx=0.5, fy=0.5 ) )
+                start_t = time.time()
+                print 'search(', i, ')'
+                # D, I = index.search( np.expand_dims(netvlad_desc[i],0), 4 )
+                faissD, faissI = index.search( netvlad_desc[i-2:i+1].astype('float32'), 4 )
+                print 'Elapsed time: %4.4fms' %(1000.* (time.time() - start_t) )
+                print 'i=', i, '::::>\n', faissI
+                print faissD
+                print tcol.OKBLUE,
+                print netvlad_at_i[i-2] , '<--->', netvlad_at_i[faissI[0,0]], 'dot=', faissD[0,0]
+                print netvlad_at_i[i-1] , '<--->', netvlad_at_i[faissI[1,0]], 'dot=', faissD[1,0]
+                print netvlad_at_i[i] , '<--->', netvlad_at_i[faissI[2,0]], 'dot=', faissD[2,0]
+                print tcol.ENDC
+                T.append( (int(netvlad_at_i[i-2]), int(netvlad_at_i[faissI[0,0]]), float(faissD[0,0]) )  )
+            index.display()
 
 
-                    key = cv2.waitKey(20)
-                    if key == ord('q'):
-                        print 'Will do the do products but not display images; doing the dot products now, have patience.'
-                        flag_show_image = False
-                        cv2.destroyWindow( '__im' )
-                        cv2.destroyWindow( 'plot')
-        # cv2.destroyWindow( 'plot' )
+        # Save T as json
+        assert len(T) > 0, "T seems to be emoty. This means there were no raw loop candidates. this is an error. re-check the code\n"
+        assert( len(T) > 0 )
+        TJSON = []
+        for tT in T:
+            TJSON.append( {'global_a': tT[0], 'global_b': tT[1], 'score': tT[2] } )
+        TJSON_fname = BASE+'/loopcandidates_unfiltered.json'
+        print 'Writing Raw Loop Candidates : ', TJSON_fname
+        with open( TJSON_fname, 'w') as outfile:
+            json.dump( TJSON, outfile, indent=2 )
+
+
         # This is a locality and threshold filtering.
         S = filter_candidates( T, TH=0., locality=8 )
 
+
+
     else:
         # Load the candidates from json file
-        loopcandidate_json_fname = BASE+'/loopcandidates_ibow_lcd.json'
+        # loopcandidate_json_fname = BASE+'/loopcandidates_ibow_lcd.json'
         # loopcandidate_json_fname = BASE+'/loopcandidates_dbow.json'
         # loopcandidate_json_fname = BASE+'/loopcandidates_liverun.json'
         # loopcandidate_json_fname = BASE+'/loopcandidates_manually_marked.json'
+        loopcandidate_json_fname = BASE+'/loopcandidates_unfiltered.json'
         DESCRIPTOR_STR = 'loopcandidate_json_fname='+'/'.join(loopcandidate_json_fname.split('/')[-2:])
 
         print 'LOAD file: ', loopcandidate_json_fname
@@ -278,8 +352,8 @@ if __name__ == "__main__":
 
         T = []
         for l in loopcandidate__data:
-            T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
-            # T.append(  ( l['global_a'], l['global_b'], l['score'] ) )
+            # T.append(  ( l['global_a'], l['global_b'], l['inliers'] ) )
+            T.append(  ( l['global_a'], l['global_b'], l['score'] ) )
         # code.interact( local=locals() )
         # quit()
 

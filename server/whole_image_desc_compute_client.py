@@ -15,7 +15,7 @@ try:
     res = rospy.ServiceProxy( 'whole_image_descriptor_compute', WholeImageDescriptorCompute )
 
     # X = np.zeros( (100, 100), dtype=np.uint8 )
-    X = cv2.resize( cv2.imread( '/app/lena.jpg' ), (640,480) )
+    X = cv2.resize( cv2.imread( '/app/lena.jpg' ), (752,480) )
     X = cv2.cvtColor(X, cv2.COLOR_BGR2GRAY)
 
     i = CvBridge().cv2_to_imgmsg( X )
